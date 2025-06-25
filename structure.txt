@@ -1,0 +1,109 @@
+Folder PATH listing for volume Acer
+Volume serial number is CEC0-F1D7
+C:.
+�   custom-backdate.sh
+�   structure.txt
+�   
++---backend
+�   �   a.exe
+�   �   app.js
+�   �   eg.c
+�   �   package-lock.json
+�   �   package.json
+�   �   README.md
+�   �   server.js
+�   �   
+�   +---config
+�   �       config.env
+�   �       
+�   +---controllers
+�   �       applicationController.js
+�   �       jobController.js
+�   �       userController.js
+�   �       
+�   +---database
+�   �       dbConnection.js
+�   �       
+�   +---middlewares
+�   �       auth.js
+�   �       catchAsyncError.js
+�   �       error.js
+�   �       
+�   +---models
+�   �       applicationSchema.js
+�   �       jobSchema.js
+�   �       userSchema.js
+�   +---node_modules       
+�   +---routes
+�   �       applicationRouter.js
+�   �       jobRouter.js
+�   �       userRouter.js
+�   �       
+�   +---utils
+�           jwtToken.js
+�           
++---frontend
+    �   .gitignore
+    �   eslint.config.js
+    �   index.html
+    �   package-lock.json
+    �   package.json
+    �   README.md
+    �   vite.config.js
+    �   
+    +---node_modules
+    �           
+    +---public
+    �   �   heroS.jpg
+    �   �   JobZee-logos__transparent.png
+    �   �   JobZee-logos__white.png
+    �   �   JobZeelogo.png
+    �   �   JobZeelogo1.png
+    �   �   login.png
+    �   �   notfound.png
+    �   �   register.png
+    �   �   vite.svg
+    �   �   
+    �   +---CVs
+    �           cv1.jpg
+    �           cv2.jpg
+    �           cv3.jpg
+    �           cv4.jpg
+    �           cv5.jpg
+    �           
+    +---src
+        �   App.css
+        �   App.jsx
+        �   App2.css
+        �   main.jsx
+        �   
+        +---components
+            +---Application
+            �       Application.jsx
+            �       MyApplications.jsx
+            �       ResumeModel.jsx
+            �       
+            +---Auth
+            �       Login.jsx
+            �       Register.jsx
+            �       
+            +---Home
+            �       HeroSection.jsx
+            �       Home.jsx
+            �       HowItWorks.jsx
+            �       PopularCategories.jsx
+            �       PopularCompanies.jsx
+            �       
+            +---Job
+            �       JobDetails.jsx
+            �       Jobs.jsx
+            �       MyJobs.jsx
+            �       PostJob.jsx
+            �       
+            +---Layout
+            �       Footer.jsx
+            �       NavBar.jsx
+            �       
+            +---NotFound
+                    NotFound.jsx
+                    
