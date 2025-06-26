@@ -30,15 +30,12 @@ const MyJobs = () => {
     fetchJobs();
   }, []);
 
+  // Redirect to home if not authorized or user is not an employer
   useEffect(() => {
     if (!isAuthorized || (user && user.role !== "Employer")) {
       navigateTo("/");
     }
   }, [isAuthorized, user, navigateTo]);
-
-  // if (!isAuthorized || (user && user.role !== "Employer")) {
-  //   navigateTo("/");
-  // }
 
   //Function for enabling editing mode
 

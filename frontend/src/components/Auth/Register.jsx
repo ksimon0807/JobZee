@@ -38,6 +38,7 @@ const Register = () => {
       setPhone("");
       setRole("");
       setPassword("");
+      setUser(data.user); // Set user context after registration
       setIsAuthorized(true);
       console.log("isAuthorized:", isAuthorized); // --------------------
     } catch (error) {

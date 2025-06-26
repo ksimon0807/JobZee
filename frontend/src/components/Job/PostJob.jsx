@@ -70,14 +70,10 @@ const PostJob = () => {
         toast.error(error.response.data.message);
       });
   };
-  // const navigateTo = useNavigate();
-  // if (!isAuthorized || (user && user.role !== "Employer")) {
-  //   navigateTo("/");
-  // }
-
   const navigateTo = useNavigate();
 
   useEffect(() => {
+    // Removed direct navigateTo call from render body and moved to useEffect for React best practices.
     if (!isAuthorized || (user && user.role !== "Employer")) {
       navigateTo("/");
     }

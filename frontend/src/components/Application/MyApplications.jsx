@@ -220,7 +220,7 @@ const MyApplications = () => {
           .then((res) => {
             setApplications(res.data.applications);
           });
-      } else {
+      } else if (user && user.role === "Job seeker") {
         axios
           .get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/application/jobseeker/getall`, {
             withCredentials: true,
@@ -230,9 +230,9 @@ const MyApplications = () => {
           });
       }
     } catch (error) {
-      toast.error(error.response.data.message);
+      toast.error(error.response?.data?.message || 'Error fetching applications');
     }
-  }, [isAuthorized]);
+  }, [isAuthorized, user]);
 
   const deleteApplication = (id) => {
     try {

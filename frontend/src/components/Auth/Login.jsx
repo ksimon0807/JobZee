@@ -33,8 +33,8 @@ const Login = () => {
       setEmail("");
       setRole("");
       setPassword("");
-      setUser(data.user); // <-- Fix: update user context after login
       setIsAuthorized(true);
+      setUser(data.user); // Set user context after login
       console.log("isAuthorized:", isAuthorized); // --------------------
     } catch (error) {
       toast.error(error.response.data.message);

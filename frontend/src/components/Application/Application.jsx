@@ -58,15 +58,12 @@ const Application = () => {
     }
   };
 
-  if (!isAuthorized || (user && user.role === "Employer")) {
-    navigateTo("/");
-  }
-
-  // useEffect(() => {
-  //   if (!isAuthorized || (user && user.role === "Employer")) {
-  //     navigateTo("/");
-  //   }
-  // }, [isAuthorized, user, navigateTo]);
+  useEffect(() => {
+    // Redirect to home if user is not authorized or if the user role is Employer
+    if (!isAuthorized || (user && user.role === "Employer")) {
+      navigateTo("/");
+    }
+  }, [isAuthorized, user, navigateTo]);
 
   return (
     <>
