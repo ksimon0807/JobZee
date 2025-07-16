@@ -1,0 +1,104 @@
+/* Modern, clean, and responsive my applications styles */
+.my-applications-container {
+  background: #f4f6fa;
+  min-height: 100vh;
+  padding: 32px 0;
+}
+
+.my-applications-title {
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: #1a2a36;
+  margin-bottom: 0.5rem;
+  text-align: center;
+}
+
+.my-applications-list {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.my-applications-card {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.10);
+  padding: 28px 24px 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+
+.my-applications-card:hover {
+  box-shadow: 0 12px 40px rgba(26,127,90,0.13);
+  transform: translateY(-2px) scale(1.01);
+}
+
+.my-applications-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.my-applications-label {
+  font-weight: 500;
+  color: #374151;
+  min-width: 120px;
+}
+
+.my-applications-value {
+  color: #1a7f5a;
+  font-weight: 500;
+}
+
+.my-applications-resume-btn, .my-applications-delete-btn {
+  background: #1a7f5a;
+  color: #fff;
+  font-weight: 500;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 0;
+  width: 100%;
+  text-align: center;
+  text-decoration: none;
+  margin-top: 8px;
+  transition: background 0.2s;
+  display: block;
+  cursor: pointer;
+}
+
+.my-applications-resume-btn:hover, .my-applications-delete-btn:hover {
+  background: #145c41;
+}
+
+.my-applications-resume-filename {
+  color: #007bff;
+  text-decoration: underline;
+  cursor: pointer;
+  font-weight: 500;
+  margin-bottom: 6px;
+  display: inline-block;
+}
+
+/* Add word-break and overflow-wrap to all major my applications text containers */
+.my-applications-title,
+.my-applications-card,
+.my-applications-row,
+.my-applications-label,
+.my-applications-value,
+.my-applications-resume-filename {
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 600px) {
+  .my-applications-card {
+    padding: 16px 8px 12px 8px;
+  }
+  .my-applications-title {
+    font-size: 1.5rem;
+  }
+}

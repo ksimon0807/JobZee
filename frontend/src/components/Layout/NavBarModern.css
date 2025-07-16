@@ -1,0 +1,126 @@
+/* NavBarModern.css - Modern, clean, and responsive navbar styling */
+
+.navbarShow, .navbarHide {
+  width: 100vw;
+  background: linear-gradient(90deg, #1e293b 0%, #0f172a 100%);
+  color: #fff;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  transition: top 0.3s;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+}
+
+.navbarHide {
+  display: none;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 70px;
+}
+
+.logo img {
+  height: 48px;
+  width: auto;
+  filter: drop-shadow(0 2px 8px rgba(0,0,0,0.12));
+}
+
+.menu {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  transition: all 0.3s;
+}
+
+.menu li {
+  position: relative;
+}
+
+.menu li a, .menu li button {
+  color: #fff;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 1.05rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem 1.2rem;
+  border-radius: 6px;
+  transition: background 0.2s, color 0.2s;
+}
+
+.menu li a:hover, .menu li button:hover {
+  background: #334155;
+  color: #38bdf8;
+}
+
+.logout-btn {
+  background: #ef4444;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 0.5rem 1.2rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.logout-btn:hover {
+  background: #b91c1c;
+}
+
+.hamburger {
+  display: none;
+  font-size: 2rem;
+  color: #fff;
+  cursor: pointer;
+  margin-left: 1.5rem;
+}
+
+@media (max-width: 900px) {
+  .container {
+    padding: 0 1rem;
+  }
+  .menu {
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 700px) {
+  .container {
+    height: 60px;
+  }
+  .menu {
+    position: absolute;
+    top: 60px;
+    right: 0;
+    background: #1e293b;
+    flex-direction: column;
+    width: 220px;
+    align-items: flex-start;
+    padding: 1.5rem 1rem;
+    border-radius: 0 0 12px 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-10px);
+    transition: all 0.3s;
+  }
+  .show-menu.menu {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+  }
+  .hamburger {
+    display: block;
+  }
+}

@@ -1,0 +1,157 @@
+/* Modern, clean, and responsive application form styles */
+.application-form-container {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+  max-width: 600px;
+  margin: 40px auto;
+  padding: 32px 28px 24px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.application-form-title {
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: #1a2a36;
+  margin-bottom: 0.5rem;
+  text-align: center;
+}
+
+.application-form-subtitle {
+  font-size: 1.2rem;
+  color: #4b5563;
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.application-form-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.application-form-row input {
+  flex: 1 1 200px;
+}
+
+.application-form-label {
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 6px;
+}
+
+.application-form-input, .application-form-textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 1rem;
+  background: #f9fafb;
+  margin-bottom: 12px;
+  transition: border 0.2s;
+}
+
+.application-form-input:focus, .application-form-textarea:focus {
+  border: 1.5px solid #007bff;
+  outline: none;
+}
+
+.application-form-textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.application-form-file {
+  margin-top: 8px;
+  margin-bottom: 12px;
+}
+
+.application-form-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.application-form-submit {
+  background: #1a7f5a;
+  color: #fff;
+  font-size: 1.1rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  padding: 14px 0;
+  width: 100%;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.application-form-submit:hover {
+  background: #145c41;
+}
+
+.application-form-resume-link {
+  color: #007bff;
+  text-decoration: underline;
+  font-weight: 500;
+  margin-left: 8px;
+}
+
+.application-form-resume-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #f9fafb;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  font-size: 1rem;
+  color: #374151;
+}
+
+.application-form-resume-filename {
+  font-weight: 500;
+  color: #1a7f5a;
+  margin-right: 8px;
+  word-break: break-all;
+}
+
+.application-form-resume-edit {
+  background: #e5e7eb;
+  color: #1a7f5a;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 0.98rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.application-form-resume-edit:hover {
+  background: #d1fae5;
+}
+
+/* Add word-break and overflow-wrap to all major application form text containers */
+.application-form-title,
+.application-form-subtitle,
+.application-form-label,
+.application-form-input,
+.application-form-textarea,
+.application-form-resume-filename,
+.application-form-resume-box {
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 600px) {
+  .application-form-container {
+    padding: 18px 6px 16px 6px;
+  }
+  .application-form-title {
+    font-size: 1.5rem;
+  }
+}

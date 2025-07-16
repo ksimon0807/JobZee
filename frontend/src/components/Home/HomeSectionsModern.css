@@ -1,0 +1,201 @@
+/* Modern, clean, and responsive styles for home page sections */
+.howitworks-modern-section {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.10);
+  max-width: 1100px;
+  margin: 32px auto 24px auto;
+  padding: 32px 28px 24px 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+}
+
+.howitworks-modern-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1a2a36;
+  margin-bottom: 1.2rem;
+  text-align: center;
+}
+
+.howitworks-modern-grid {
+  display: flex;
+  gap: 32px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.howitworks-modern-card {
+  background: #f9fafb;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(26,127,90,0.07);
+  padding: 24px 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 220px;
+  max-width: 320px;
+  gap: 8px;
+}
+
+.howitworks-modern-icon {
+  font-size: 2.2rem;
+  color: #1a7f5a;
+  margin-bottom: 8px;
+}
+
+.howitworks-modern-card-title {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: #1a2a36;
+}
+
+.howitworks-modern-card-desc {
+  color: #6b7280;
+  font-size: 1rem;
+  text-align: center;
+}
+
+.categories-modern-section {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.10);
+  max-width: 1100px;
+  margin: 32px auto 24px auto;
+  padding: 32px 28px 24px 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+}
+
+.categories-modern-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1a2a36;
+  margin-bottom: 1.2rem;
+  text-align: center;
+}
+
+.categories-modern-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 24px;
+  width: 100%;
+}
+
+.categories-modern-card {
+  background: #f9fafb;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(26,127,90,0.07);
+  padding: 24px 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.categories-modern-icon {
+  font-size: 2.2rem;
+  color: #1a7f5a;
+  margin-bottom: 8px;
+}
+
+.categories-modern-card-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1a2a36;
+}
+
+.categories-modern-card-sub {
+  color: #6b7280;
+  font-size: 0.98rem;
+}
+
+.companies-modern-section {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.10);
+  max-width: 1100px;
+  margin: 32px auto 24px auto;
+  padding: 32px 28px 24px 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+}
+
+.companies-modern-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1a2a36;
+  margin-bottom: 1.2rem;
+  text-align: center;
+}
+
+.companies-modern-grid {
+  display: flex;
+  gap: 32px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.companies-modern-card {
+  background: #f9fafb;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(26,127,90,0.07);
+  padding: 24px 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 220px;
+  max-width: 320px;
+  gap: 8px;
+}
+
+.companies-modern-icon {
+  font-size: 2.2rem;
+  color: #1a7f5a;
+  margin-bottom: 8px;
+}
+
+.companies-modern-card-title {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: #1a2a36;
+}
+
+.companies-modern-card-sub {
+  color: #6b7280;
+  font-size: 1rem;
+}
+
+.companies-modern-btn {
+  background: #1a7f5a;
+  color: #fff;
+  font-weight: 500;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 0;
+  width: 100%;
+  text-align: center;
+  text-decoration: none;
+  margin-top: 8px;
+  transition: background 0.2s;
+  display: block;
+  cursor: pointer;
+}
+
+.companies-modern-btn:hover {
+  background: #145c41;
+}
+
+@media (max-width: 900px) {
+  .howitworks-modern-section,
+  .categories-modern-section,
+  .companies-modern-section {
+    padding: 18px 8px 16px 8px;
+  }
+}

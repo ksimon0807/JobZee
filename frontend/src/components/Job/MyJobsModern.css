@@ -1,0 +1,175 @@
+.myJobs.page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #232526 0%, #414345 100%);
+  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 2.5rem 0;
+}
+
+.myJobs .container {
+  background: rgba(30, 32, 38, 0.97);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.25);
+  border-radius: 24px;
+  padding: 2.5rem 2.5rem 2rem 2.5rem;
+  color: #fff;
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.myJobs .container h3 {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 2rem;
+  color: #fff;
+  text-align: center;
+}
+
+.myJobs .banner {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.myJobs .card {
+  background: rgba(44, 48, 58, 0.85);
+  border-radius: 18px;
+  box-shadow: 0 4px 24px 0 rgba(31, 38, 135, 0.10);
+  padding: 2rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  border: 1.5px solid #2d564933;
+  color: #fff;
+}
+
+.myJobs .content {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
+}
+
+.myJobs .short_fields {
+  flex: 1 1 250px;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.myJobs .short_fields > div {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.myJobs .short_fields span {
+  color: #bfc9d1;
+  font-size: 1rem;
+  min-width: 90px;
+}
+
+.myJobs .short_fields input,
+.myJobs .short_fields select {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #fff;
+  font-size: 1rem;
+  border-bottom: 1.5px solid #7e8ba3;
+  padding: 0.3rem 0.5rem;
+  border-radius: 6px;
+  flex: 1;
+}
+
+.myJobs .short_fields input[disabled],
+.myJobs .short_fields select[disabled] {
+  opacity: 0.7;
+  border-bottom: 1.5px dashed #7e8ba3;
+}
+
+.myJobs .long_field {
+  flex: 1 1 250px;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.myJobs .long_field > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.myJobs .long_field span {
+  color: #bfc9d1;
+  font-size: 1rem;
+}
+
+.myJobs .long_field textarea {
+  background: transparent;
+  border: 1.5px solid #7e8ba3;
+  color: #fff;
+  font-size: 1rem;
+  border-radius: 8px;
+  padding: 0.7rem;
+  resize: vertical;
+  min-height: 60px;
+}
+
+.button_wrapper {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+}
+
+.edit_btn_wrapper {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.edit_btn, .check_btn, .cross_btn, .delete_btn {
+  background: linear-gradient(90deg, #3a3f51 0%, #232526 100%);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 0.5rem 1.2rem;
+  font-size: 1rem;
+  font-weight: 600;
+  box-shadow: 0 2px 8px 0 #0002;
+  transition: background 0.2s, box-shadow 0.2s;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.edit_btn:hover, .check_btn:hover, .cross_btn:hover, .delete_btn:hover {
+  background: linear-gradient(90deg, #232526 0%, #3a3f51 100%);
+  box-shadow: 0 4px 16px 0 #0003;
+}
+.delete_btn {
+  background: linear-gradient(90deg, #e94235 0%, #232526 100%);
+  color: #fff;
+}
+.delete_btn:hover {
+  background: linear-gradient(90deg, #232526 0%, #e94235 100%);
+}
+
+@media (max-width: 900px) {
+  .myJobs .container {
+    padding: 1.5rem 0.5rem;
+    max-width: 99vw;
+  }
+  .myJobs .banner {
+    gap: 1.2rem;
+  }
+  .myJobs .card {
+    padding: 1.2rem 0.7rem;
+  }
+  .myJobs .content {
+    flex-direction: column;
+    gap: 1.2rem;
+  }
+}

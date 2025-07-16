@@ -1,0 +1,305 @@
+/* ProfileMatchApplications.css - Profile page styled to match My Applications UI and color scheme */
+
+.profile-container {
+  background: #f4f6fa;
+  min-height: 100vh;
+  max-width: 700px;
+  margin: 32px auto 0 auto;
+  padding: 0 1rem 32px 1rem;
+}
+
+.profile-header {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.10);
+  padding: 28px 24px 20px 24px;
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  margin-bottom: 2rem;
+  position: relative;
+}
+
+.profile-avatar {
+  width: 110px;
+  height: 110px;
+  min-width: 110px;
+  border-radius: 50%;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(26,127,90,0.10);
+}
+
+.profile-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  border: 3px solid #1a7f5a;
+}
+
+.avatar-upload {
+  position: absolute;
+  bottom: 18px;
+  left: 90px;
+  background: #1a7f5a;
+  border-radius: 50%;
+  padding: 8px;
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(26,127,90,0.13);
+}
+
+.profile-info {
+  flex: 1;
+}
+
+.profile-info h1 {
+  margin: 0 0 0.3rem 0;
+  color: #1a2a36;
+  font-size: 1.7rem;
+  font-weight: 700;
+}
+
+.profile-info p {
+  margin: 0.2rem 0;
+  color: #374151;
+  font-size: 1.05rem;
+}
+
+.resume-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.resume-button {
+  background: #1a7f5a;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 18px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.resume-button:hover {
+  background: #145c41;
+}
+.resume-button.delete-resume {
+  background: #ef4444;
+}
+.resume-button.delete-resume:hover {
+  background: #b91c1c;
+}
+
+.edit-button {
+  position: absolute;
+  top: 18px;
+  right: 24px;
+  padding: 0.5rem 1.2rem;
+  background: #1a7f5a;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.edit-button:hover {
+  background: #145c41;
+}
+
+.profile-form, .profile-content {
+  background: #fff;
+  padding: 2rem 1.5rem;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.10);
+}
+
+.form-section {
+  margin-bottom: 2rem;
+}
+
+.form-section h2 {
+  color: #1a2a36;
+  margin-bottom: 1rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 2px solid #1a7f5a;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #374151;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.form-group input,
+.form-group textarea {
+  width: 100%;
+  padding: 0.8rem;
+  border: 1.5px solid #e0e7ef;
+  border-radius: 6px;
+  font-size: 1rem;
+  background: #f8fafc;
+  color: #1a2a36;
+  transition: border 0.2s;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: #1a7f5a;
+}
+
+.save-button {
+  width: 100%;
+  padding: 1rem;
+  background: #1a7f5a;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.save-button:hover {
+  background: #145c41;
+}
+.save-button:disabled {
+  background: #b7e2d0;
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+
+.profile-section {
+  margin-bottom: 2rem;
+}
+
+.profile-section h2 {
+  color: #1a2a36;
+  margin-bottom: 1rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.profile-section p {
+  color: #374151;
+  line-height: 1.7;
+}
+
+.skills-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+}
+
+.skill-tag {
+  background: #e6f7ef;
+  color: #1a7f5a;
+  padding: 0.6rem 1.2rem;
+  border-radius: 20px;
+  font-size: 0.98rem;
+  font-weight: 500;
+}
+
+.social-links {
+  display: flex;
+  gap: 1.2rem;
+}
+
+.social-links a {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #1a7f5a;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+.social-links a:hover {
+  color: #145c41;
+}
+
+.resume-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #1a7f5a;
+  text-decoration: none;
+  padding: 0.6rem 1.2rem;
+  border: 1.5px solid #1a7f5a;
+  border-radius: 6px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+.resume-link:hover {
+  background: #1a7f5a;
+  color: #fff;
+}
+
+.resume-upload {
+  border: 2px dashed #b7e2d0;
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 20px;
+  background: #f8fafc;
+}
+
+.file-input-wrapper {
+  margin-top: 10px;
+}
+
+.file-hint {
+  color: #64748b;
+  font-size: 0.92rem;
+  margin: 6px 0;
+}
+
+.current-resume {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 12px;
+  background: #e6f7ef;
+  border-radius: 6px;
+  color: #1a7f5a;
+  font-weight: 500;
+}
+.current-resume svg {
+  color: #1a7f5a;
+}
+
+@media (max-width: 700px) {
+  .profile-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1.2rem;
+    padding: 16px 8px 12px 8px;
+  }
+  .edit-button {
+    top: 10px;
+    right: 10px;
+    padding: 0.4rem 0.9rem;
+    font-size: 0.95rem;
+  }
+  .profile-form, .profile-content {
+    padding: 1.2rem 0.5rem;
+  }
+}
