@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: jobzee-backend
+    env: node
+    buildCommand: cd backend && npm install --legacy-peer-deps
+    startCommand: cd backend && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+
+  - type: web
+    name: jobzee-frontend
+    env: node
+    buildCommand: cd frontend && npm install && npm run build
+    startCommand: cd frontend && npm run preview -- --host
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: VITE_BACKEND_URL
+        fromService:
+          name: jobzee-backend
+          type: web
+          property: url
