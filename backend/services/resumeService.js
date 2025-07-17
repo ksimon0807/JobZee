@@ -155,6 +155,40 @@ export const ResumeService = {
       // This is a fallback for PDFs that might be in storage but not in the database
       console.log('[ResumeService] No resume in database, checking storage...');
       
+      // First try to find any metadata file for this user
+      try {
+        const { data: metaData, error: metaError } = await supabase
+          .storage
+          .from('resumes')
+          .download(`public/${userId}_metadata.json`);
+          
+        if (!metaError && metaData) {
+          try {
+            const metaText = await metaData.text();
+            const metadata = JSON.parse(metaText);
+            console.log(`[ResumeService] Found metadata file for user: ${userId}`);
+            
+            if (metadata.public_url) {
+              console.log(`[ResumeService] Using metadata's public URL: ${metadata.public_url}`);
+              return {
+                id: metadata.id || `${userId}_resume.pdf`,
+                file_name: metadata.file_name || `${userId}_resume.pdf`,
+                user_id: userId,
+                file_type: metadata.file_type || 'application/pdf',
+                file_size: metadata.file_size,
+                public_url: metadata.public_url,
+                created_at: metadata.created_at || new Date().toISOString()
+              };
+            }
+          } catch (parseErr) {
+            console.error('[ResumeService] Error parsing metadata file:', parseErr);
+            // Continue to regular storage search
+          }
+        }
+      } catch (metaErr) {
+        // No metadata file, continue to regular search
+      }
+      
       try {
         const { data: listData, error: listError } = await supabase
           .storage
@@ -171,26 +205,69 @@ export const ResumeService = {
         if (listData && listData.length > 0) {
           console.log('[ResumeService] Found files in storage:', listData.length);
           
-          // Find the most recent PDF file
-          const pdfFile = listData.find(file => 
-            file.name.includes(userId) && file.name.toLowerCase().endsWith('.pdf'));
+          // Find PDF files and sort by last modified/created to get the most recent one
+          const pdfFiles = listData
+            .filter(file => file.name.includes(userId) && file.name.toLowerCase().endsWith('.pdf'))
+            .sort((a, b) => {
+              // Sort by created date if available, otherwise by name (which includes timestamp)
+              if (a.created_at && b.created_at) {
+                return new Date(b.created_at) - new Date(a.created_at);
+              }
+              return b.name.localeCompare(a.name); // Higher timestamp = more recent
+            });
             
-          if (pdfFile) {
+          if (pdfFiles.length > 0) {
+            const pdfFile = pdfFiles[0]; // Get most recent PDF
             console.log('[ResumeService] Found PDF in storage:', pdfFile.name);
             
-            const { data: urlData } = await supabase
-              .storage
-              .from('resumes')
-              .getPublicUrl(`public/${pdfFile.name}`);
+            // Create or update database record for this resume
+            try {
+              const { data: urlData } = await supabase
+                .storage
+                .from('resumes')
+                .getPublicUrl(`public/${pdfFile.name}`);
               
-            return {
-              id: pdfFile.name,
-              file_name: pdfFile.name,
-              user_id: userId,
-              file_type: 'application/pdf',
-              public_url: urlData.publicUrl,
-              created_at: pdfFile.created_at || new Date().toISOString()
-            };
+              // Try to insert/update the database record for future queries
+              await supabase
+                .from('resumes')
+                .upsert({
+                  id: pdfFile.name,
+                  file_name: pdfFile.name,
+                  user_id: userId,
+                  file_type: 'application/pdf',
+                  public_url: urlData.publicUrl,
+                  created_at: pdfFile.created_at || new Date().toISOString()
+                }, {
+                  onConflict: 'user_id',
+                  ignoreDuplicates: false
+                });
+                
+              return {
+                id: pdfFile.name,
+                file_name: pdfFile.name,
+                user_id: userId,
+                file_type: 'application/pdf',
+                public_url: urlData.publicUrl,
+                created_at: pdfFile.created_at || new Date().toISOString()
+              };
+            } catch (upsertErr) {
+              console.warn('[ResumeService] Could not update database, continuing with storage result:', upsertErr.message);
+              
+              // Still return the file info even if DB update fails
+              const { data: urlData } = await supabase
+                .storage
+                .from('resumes')
+                .getPublicUrl(`public/${pdfFile.name}`);
+                
+              return {
+                id: pdfFile.name,
+                file_name: pdfFile.name,
+                user_id: userId,
+                file_type: 'application/pdf',
+                public_url: urlData.publicUrl,
+                created_at: pdfFile.created_at || new Date().toISOString()
+              };
+            }
           }
         }
       } catch (storageError) {

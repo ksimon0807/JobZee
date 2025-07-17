@@ -257,9 +257,10 @@ export const uploadResume = async (req, res, next) => {
                 // For PDFs, store additional metadata in Supabase
                 if (isPdf) {
                     try {
+                        // Use UPSERT to handle potential existing records
                         const { error: dbError } = await supabase
                             .from('resumes')
-                            .insert([
+                            .upsert([
                                 { 
                                     id: fileName,
                                     user_id: userId,
@@ -271,10 +272,49 @@ export const uploadResume = async (req, res, next) => {
                                     public_url: publicUrl,
                                     storage: 'supabase'
                                 }
-                            ]);
+                            ], {
+                                onConflict: 'user_id', // Replace any existing resume for this user
+                                ignoreDuplicates: false
+                            });
                             
                         if (dbError) {
                             console.warn('[uploadResume] Failed to save metadata to Supabase DB:', dbError.message);
+                            
+                            // Try a different approach if there's a permission issue
+                            if (dbError.message.includes('policy')) {
+                                try {
+                                    // Create a metadata file next to the resume in storage
+                                    const metadataString = JSON.stringify({
+                                        id: fileName,
+                                        user_id: userId,
+                                        file_name: fileName,
+                                        original_name: resumeFile.name,
+                                        file_type: resumeFile.mimetype,
+                                        file_size: resumeFile.size,
+                                        public_url: publicUrl,
+                                        created_at: new Date().toISOString()
+                                    });
+                                    
+                                    // Upload the metadata as a separate file
+                                    const metaFilePath = `public/${userId}_metadata.json`;
+                                    const { error: metaError } = await supabase
+                                        .storage
+                                        .from('resumes')
+                                        .upload(metaFilePath, metadataString, {
+                                            contentType: 'application/json',
+                                            upsert: true
+                                        });
+                                        
+                                    if (metaError) {
+                                        console.warn('[uploadResume] Failed to save metadata file:', metaError.message);
+                                    } else {
+                                        console.log('[uploadResume] Created metadata file in storage');
+                                    }
+                                } catch (metaFileError) {
+                                    console.error('[uploadResume] Error creating metadata file:', metaFileError);
+                                }
+                            }
+                            
                             // Continue anyway - the file is still uploaded
                         } else {
                             console.log('[uploadResume] PDF metadata saved to Supabase DB');

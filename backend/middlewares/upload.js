@@ -1,31 +1,49 @@
-import multer from 'multer';
-import { CloudinaryStorage } from 'multer-storage-cloudinary';
 import { v2 as cloudinary } from 'cloudinary';
+import fs from 'fs';
+import path from 'path';
 
-// Configure Storage for Profile Pictures
-const avatarStorage = new CloudinaryStorage({
-    cloudinary: cloudinary,
-    params: {
-        folder: 'jobzee/avatars',
-        allowed_formats: ['jpg', 'jpeg', 'png'],
-        transformation: [{ width: 300, height: 300, crop: 'limit' }],
-        format: 'jpg'
+// Helper function to validate file type
+const validateFileType = (file, allowedTypes) => {
+    // Check if the file exists
+    if (!file) {
+        return { valid: false, message: 'No file uploaded' };
     }
-});
+    
+    // Check mime type
+    if (!allowedTypes.includes(file.mimetype)) {
+        return { 
+            valid: false, 
+            message: `Invalid file type: ${file.mimetype}. Allowed types: ${allowedTypes.join(', ')}` 
+        };
+    }
+    
+    return { valid: true };
+};
 
-// Configure Storage for Resumes
-const resumeStorage = new CloudinaryStorage({
-    cloudinary: cloudinary,
-    params: {
-        folder: 'jobzee/resumes',
-        allowed_formats: ['pdf'],
-        resource_type: 'raw',
-        public_id: (req, file) => {
-            const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-            return `resume-${uniqueSuffix}`;
-        }
+// Helper function to upload file to Cloudinary
+const uploadToCloudinary = async (file, folder, options = {}) => {
+    try {
+        const result = await cloudinary.uploader.upload(file.tempFilePath, {
+            folder,
+            ...options
+        });
+        
+        // Clean up temp file
+        fs.unlinkSync(file.tempFilePath);
+        
+        return {
+            success: true,
+            public_id: result.public_id,
+            url: result.secure_url
+        };
+    } catch (error) {
+        console.error(`Error uploading to Cloudinary: ${error.message}`);
+        return {
+            success: false,
+            message: error.message
+        };
     }
-});
+};
 
 // Create Multer instances with middleware wrapper
 export const uploadAvatar = (req, res, next) => {

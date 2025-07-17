@@ -319,14 +319,38 @@ export const getUserResume = catchAsyncError(async (req, res, next) => {
 
     console.log(`[getUserResume] Looking up resume for user ${userId}`);
 
-    // First check MongoDB for the resume URL
+    // First check if we have a PDF in Supabase - this is our preferred source for PDFs
+    try {
+      const supabaseResume = await ResumeService.getUserResume(userId);
+      if (supabaseResume && supabaseResume.public_url) {
+        const isPdf = supabaseResume.file_type === 'application/pdf' || 
+                      supabaseResume.public_url.toLowerCase().endsWith('.pdf');
+                      
+        if (isPdf) {
+          console.log('[getUserResume] Found PDF in Supabase storage, returning it');
+          return res.status(200).json({
+            success: true,
+            resume: {
+              ...supabaseResume,
+              url: supabaseResume.public_url,
+              contentType: 'application/pdf'
+            }
+          });
+        }
+      }
+    } catch (supabaseError) {
+      console.warn('[getUserResume] Error checking Supabase first:', supabaseError.message);
+      // Continue with MongoDB check if Supabase fails
+    }
+
+    // Check MongoDB for the resume URL (fallback or for image formats)
     const user = await User.findById(userId);
     if (user?.resume?.url) {
       console.log('[getUserResume] Resume found in MongoDB user document');
       
       // Check if this is likely a PDF by examining the URL or file extension
       const isPdf = user.resume.url.toLowerCase().endsWith('.pdf') || 
-                   user.resume.public_id.toLowerCase().endsWith('.pdf');
+                   (user.resume.public_id && user.resume.public_id.toLowerCase().endsWith('.pdf'));
       
       // For PDFs, try to prioritize getting from Supabase if available
       if (isPdf) {
@@ -339,7 +363,8 @@ export const getUserResume = catchAsyncError(async (req, res, next) => {
               success: true,
               resume: {
                 ...supabaseResume,
-                url: supabaseResume.public_url || supabaseResume.url
+                url: supabaseResume.public_url || supabaseResume.url,
+                contentType: 'application/pdf'
               }
             });
           }
@@ -357,10 +382,18 @@ export const getUserResume = catchAsyncError(async (req, res, next) => {
         public_url: user.resume.url,
         user_id: userId,
         file_type: isPdf ? 'application/pdf' : 'image/jpeg',
+        contentType: isPdf ? 'application/pdf' : 'image/jpeg',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         size: 0 // Size info not available
       };
+
+      // For PDFs in MongoDB that come from Cloudinary, make sure we set the proper headers
+      if (isPdf && mongoResume.url.includes('cloudinary')) {
+        // Set the response headers for proper PDF rendering
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', 'inline');
+      }
 
       return res.status(200).json({
         success: true,
@@ -370,17 +403,29 @@ export const getUserResume = catchAsyncError(async (req, res, next) => {
     
     console.log('[getUserResume] No resume in MongoDB, trying Supabase...');
     
-    // If not found in MongoDB, try Supabase
+    // If not found in MongoDB, try Supabase as a last resort
     const resumeData = await ResumeService.getUserResume(userId);
     if (!resumeData) {
       return next(new ErrorHandler("Resume not found", 404));
     }
     
+    // Determine if it's a PDF
+    const isPdf = (resumeData.file_type === 'application/pdf') || 
+                  (resumeData.public_url && resumeData.public_url.toLowerCase().endsWith('.pdf'));
+                  
     // Always return a 'url' field for frontend compatibility
     const normalizedResume = {
       ...resumeData,
-      url: resumeData.url || resumeData.public_url || null
+      url: resumeData.url || resumeData.public_url || null,
+      contentType: isPdf ? 'application/pdf' : (resumeData.file_type || 'image/jpeg')
     };
+    
+    // For PDFs, set the proper headers
+    if (isPdf) {
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', 'inline');
+    }
+    
     res.status(200).json({
       success: true,
       resume: normalizedResume
