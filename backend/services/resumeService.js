@@ -26,6 +26,27 @@ export const ResumeService = {
       const fs = await import('fs');
       const fileBuffer = fs.readFileSync(file.tempFilePath);
       
+      // Check if Supabase is properly configured
+      if (!process.env.SUPABASE_PROJECT_URL || 
+          !(process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY)) {
+        console.warn('[ResumeService] Supabase not configured, falling back to Cloudinary');
+        
+        // Upload to Cloudinary as fallback
+        const { v2: cloudinary } = await import('cloudinary');
+        const uploadResult = await cloudinary.uploader.upload(file.tempFilePath, {
+          resource_type: file.mimetype === 'application/pdf' ? 'raw' : 'auto',
+          folder: 'jobzee/resumes'
+        });
+        
+        return {
+          fileName: fileName,
+          originalName: file.name,
+          fileType: file.mimetype,
+          fileSize: file.size,
+          publicUrl: uploadResult.secure_url
+        };
+      }
+      
       const { data, error } = await supabase
         .storage
         .from('resumes')

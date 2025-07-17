@@ -130,11 +130,22 @@ export const uploadAvatar = async (req, res, next) => {
     }
 };
 
-// Initialize Supabase client
-const supabase = createClient(
-    process.env.SUPABASE_URL,
-    process.env.SUPABASE_KEY
-);
+// Initialize Supabase client if environment variables are available
+let supabase;
+try {
+    const supabaseUrl = process.env.SUPABASE_PROJECT_URL;
+    const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) {
+        console.warn('[uploadResume] Missing Supabase configuration. File uploads will use Cloudinary only.');
+    } else {
+        supabase = createClient(supabaseUrl, supabaseKey);
+        console.log('[uploadResume] Supabase initialized successfully');
+    }
+} catch (error) {
+    console.error('[uploadResume] Error initializing Supabase:', error);
+    // Continue without Supabase, we'll use Cloudinary as fallback
+}
 
 // Create express-fileupload middleware for resumes
 export const uploadResume = async (req, res, next) => {
@@ -190,38 +201,72 @@ export const uploadResume = async (req, res, next) => {
             });
         }
         
-        // Upload to Supabase
+        // Prepare file metadata
         const userId = req.user._id.toString();
         const timestamp = Date.now();
         const fileExt = path.extname(resumeFile.name);
         const fileName = `${userId}_${timestamp}${fileExt}`;
+        let publicUrl;
         
-        console.log('[uploadResume] Uploading to Supabase:', fileName);
-        
-        const { data, error } = await supabase
-            .storage
-            .from('resumes')
-            .upload(`public/${fileName}`, fs.readFileSync(resumeFile.tempFilePath), {
-                contentType: resumeFile.mimetype,
-                upsert: true
-            });
-            
-        if (error) {
-            console.error('[uploadResume] Supabase upload error:', error);
-            return res.status(500).json({
-                success: false,
-                message: `Failed to upload resume: ${error.message}`
-            });
+        // Try Supabase upload if available, otherwise fall back to Cloudinary
+        if (supabase) {
+            try {
+                console.log('[uploadResume] Uploading to Supabase:', fileName);
+                
+                const { data, error } = await supabase
+                    .storage
+                    .from('resumes')
+                    .upload(`public/${fileName}`, fs.readFileSync(resumeFile.tempFilePath), {
+                        contentType: resumeFile.mimetype,
+                        upsert: true
+                    });
+                    
+                if (error) {
+                    console.error('[uploadResume] Supabase upload error:', error);
+                    throw new Error(error.message);
+                }
+                
+                // Get the public URL
+                const { data: urlData } = await supabase
+                    .storage
+                    .from('resumes')
+                    .getPublicUrl(`public/${fileName}`);
+                    
+                publicUrl = urlData.publicUrl;
+                console.log('[uploadResume] File uploaded successfully to Supabase');
+            } catch (supabaseError) {
+                console.error('[uploadResume] Supabase upload failed, falling back to Cloudinary:', supabaseError.message);
+                // Fall back to Cloudinary
+                const uploadResult = await uploadToCloudinary(resumeFile, 'jobzee/resumes');
+                if (!uploadResult.success) {
+                    return res.status(500).json({
+                        success: false,
+                        message: `Failed to upload resume to backup storage: ${uploadResult.message}`
+                    });
+                }
+                publicUrl = uploadResult.url;
+                console.log('[uploadResume] File uploaded successfully to Cloudinary (fallback)');
+            }
+        } else {
+            // No Supabase, use Cloudinary directly
+            console.log('[uploadResume] Supabase not available, uploading to Cloudinary:', fileName);
+            const uploadResult = await uploadToCloudinary(resumeFile, 'jobzee/resumes');
+            if (!uploadResult.success) {
+                return res.status(500).json({
+                    success: false,
+                    message: `Failed to upload resume: ${uploadResult.message}`
+                });
+            }
+            publicUrl = uploadResult.url;
+            console.log('[uploadResume] File uploaded successfully to Cloudinary');
         }
-        
-        // Get the public URL
-        const { data: urlData } = await supabase
-            .storage
-            .from('resumes')
-            .getPublicUrl(`public/${fileName}`);
             
-        // Clean up temp file
-        fs.unlinkSync(resumeFile.tempFilePath);
+        // Temp file is cleaned up in each upload pathway
+        
+        // Clean up temp file if it wasn't already done in uploadToCloudinary
+        if (fs.existsSync(resumeFile.tempFilePath)) {
+            fs.unlinkSync(resumeFile.tempFilePath);
+        }
         
         // Save resume metadata to the request
         req.resume = {
@@ -229,7 +274,7 @@ export const uploadResume = async (req, res, next) => {
             fileName: fileName,
             contentType: resumeFile.mimetype,
             size: resumeFile.size,
-            publicUrl: urlData.publicUrl,
+            publicUrl: publicUrl,
             userId: userId
         };
         
