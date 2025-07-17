@@ -15,7 +15,7 @@ import {
     getUserPublicProfile
 } from "../controllers/userController.js";
 import { isAuthorized } from "../middlewares/auth.js";
-import { uploadAvatar, uploadResume } from "../middlewares/upload.js";
+import { uploadAvatar, uploadResume } from "../middlewares/upload_express.js";
 
 const router = express.Router();
 // Employer view applicant profile

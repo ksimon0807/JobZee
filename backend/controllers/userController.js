@@ -227,11 +227,11 @@ export const updateProfile = catchAsyncError(async (req, res, next) => {
 
 export const handleAvatarUpload = catchAsyncError(async (req, res, next) => {
   console.log('Starting avatar upload handler');
-  console.log('Request file:', req.file);
+  console.log('Avatar data:', req.avatar);
   console.log('Request user:', req.user);
 
-  if (!req.file) {
-    return next(new ErrorHandler("Please upload an avatar", 400));
+  if (!req.avatar) {
+    return next(new ErrorHandler("Avatar upload failed", 400));
   }
 
   try {
@@ -250,12 +250,8 @@ export const handleAvatarUpload = catchAsyncError(async (req, res, next) => {
       }
     }
 
-    // Update user with new avatar details
-    const avatarData = {
-      public_id: req.file.filename || req.file.public_id,
-      url: req.file.path || req.file.secure_url
-    };
-
+    // Avatar data was already processed in the middleware
+    const avatarData = req.avatar;
     console.log('New avatar data:', avatarData);
 
     user.avatar = avatarData;
@@ -276,20 +272,20 @@ export const handleAvatarUpload = catchAsyncError(async (req, res, next) => {
 
 export const handleResumeUpload = catchAsyncError(async (req, res, next) => {
   try {
-    if (!req.file) {
-      return next(new ErrorHandler("Please upload a resume", 400));
+    if (!req.resume) {
+      return next(new ErrorHandler("Resume upload failed", 400));
     }
 
-    console.log("Resume file received:", req.file);
+    console.log("Resume data received:", req.resume);
 
     // Use the user object already attached by isAuthorized
     const user = req.user;
     if (!user) {
       return next(new ErrorHandler("User not found", 404));
     }
-
-    // Upload the resume to Supabase
-    const resumeData = await ResumeService.uploadResume(req.file, user._id.toString());
+    
+    // Resume was already uploaded in the middleware
+    const resumeData = req.resume;
     
     // Update the user's resume reference in MongoDB
     user.resume = {

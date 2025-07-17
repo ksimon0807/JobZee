@@ -5,7 +5,7 @@ import ErrorHandler from '../middlewares/error.js';
 export const ResumeService = {
   /**
    * Upload a resume to Supabase storage
-   * @param {Object} file - The file object
+   * @param {Object} file - The file object from express-fileupload
    * @param {string} userId - The user ID
    * @returns {Object} The uploaded file data
    */
@@ -13,20 +13,23 @@ export const ResumeService = {
     try {
       console.log('[ResumeService] Uploading resume for user:', userId);
       
-      if (!file || !file.buffer) {
-        throw new Error('No file provided');
+      if (!file || !file.tempFilePath) {
+        throw new Error('No file provided or invalid file format');
       }
       
       // Generate a unique filename
       const timestamp = Date.now();
-      const fileExt = file.originalname.split('.').pop();
+      const fileExt = file.name.split('.').pop();
       const fileName = `${userId}_${timestamp}.${fileExt}`;
       
-      // Upload to Supabase Storage
+      // Upload to Supabase Storage using the temporary file created by express-fileupload
+      const fs = await import('fs');
+      const fileBuffer = fs.readFileSync(file.tempFilePath);
+      
       const { data, error } = await supabase
         .storage
         .from('resumes')
-        .upload(`public/${fileName}`, file.buffer, {
+        .upload(`public/${fileName}`, fileBuffer, {
           contentType: file.mimetype,
           upsert: true
         });
