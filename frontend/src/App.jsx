@@ -75,7 +75,28 @@ const App = () => {
       console.log('Current cookies:', document.cookie);
       
       try {
-        // Check both localStorage and cookie
+        // Always try to fetch user data first - this will work if cookie auth is valid
+        try {
+          const response = await axios.get(
+            `${import.meta.env.VITE_BACKEND_URL}/api/v1/user/getuser`,
+            { withCredentials: true }
+          );
+          
+          if (response.data.success && response.data.user) {
+            console.log('Successfully fetched user data from API:', response.data.user);
+            setUser(response.data.user);
+            setIsAuthorized(true);
+            localStorage.setItem('isAuthorized', 'true');
+            localStorage.setItem('user', JSON.stringify(response.data.user));
+            setLoading(false);
+            return; // Exit early if API auth worked
+          }
+        } catch (apiError) {
+          console.log('API auth check failed, falling back to localStorage:', apiError.message);
+          // Continue to localStorage check
+        }
+        
+        // Fallback to localStorage if API call fails
         const savedAuth = localStorage.getItem('isAuthorized');
         const token = getCookie('token');
         
@@ -85,9 +106,15 @@ const App = () => {
           allCookies: document.cookie 
         });
 
-        if (token || savedAuth === 'true') {
-          console.log('Token or saved auth found, fetching user data');
-          await fetchUser();
+        if (savedAuth === 'true') {
+          const savedUser = localStorage.getItem('user');
+          if (savedUser) {
+            console.log('Using saved user data from localStorage');
+            setUser(JSON.parse(savedUser));
+            setIsAuthorized(true);
+          } else {
+            throw new Error('No user data in localStorage');
+          }
         } else {
           console.log('No authentication found, clearing auth state');
           setIsAuthorized(false);
