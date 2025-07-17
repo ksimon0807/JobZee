@@ -48,7 +48,7 @@ export const uploadAvatar = (req, res, next) => {
     const upload = multer({ 
         storage: avatarStorage,
         limits: {
-            fileSize: 1024 * 1024 * 2 // 2MB max file size
+            fileSize: 1024 * 1024 * 5 // Increased to 5MB max file size
         },
         fileFilter: (req, file, cb) => {
             console.log('[uploadAvatar] Processing file:', file.originalname, file.mimetype);
@@ -130,48 +130,78 @@ export const uploadResume = (req, res, next) => {
     // For Supabase, we use memory storage to get the file buffer
     const storage = multer.memoryStorage();
     
+    // Create a more robust upload handler
+    console.log('[uploadResume] Setting up multer with memory storage');
+    
     const upload = multer({
         storage,
         limits: {
-            fileSize: 1024 * 1024 * 5 // 5MB max file size for resumes
+            fileSize: 1024 * 1024 * 10 // Increased to 10MB max file size for resumes
         },
         fileFilter: (req, file, cb) => {
-            console.log('[uploadResume] Processing file:', file.originalname, file.mimetype, file.size);
-            
-            if (!file) {
-                console.log('[uploadResume] No file provided');
-                return cb(new Error('No file uploaded'), false);
-            }
+                console.log('[uploadResume] Processing file:', file.originalname, file.mimetype, 
+                    file.size ? `${Math.round(file.size/1024)}KB` : 'size unknown');
+                
+                if (!file) {
+                    console.log('[uploadResume] No file provided');
+                    return cb(new Error('No file uploaded'), false);
+                }
 
-            // Allow PDFs and common image formats
-            const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png'];
-            if (!allowedTypes.includes(file.mimetype)) {
-                return cb(new Error('Only PDF and image files are allowed'), false);
+                // More permissive file type checking
+                const allowedTypes = [
+                    'application/pdf', 
+                    'image/jpeg', 
+                    'image/png', 
+                    'image/jpg',
+                    'application/msword',
+                    'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+                ];
+                
+                if (!allowedTypes.includes(file.mimetype)) {
+                    console.log('[uploadResume] Invalid file type:', file.mimetype);
+                    return cb(new Error(`Invalid file type: ${file.mimetype}. Only PDF, Word, and image files are allowed`), false);
+                }
+                
+                console.log('[uploadResume] File accepted:', file.originalname);
+                cb(null, true);
             }
-            cb(null, true);
-        }
-    }).single('resume');
+        }).single('resume');
 
     upload(req, res, function(err) {
         console.log('[uploadResume] Upload attempt completed');
         
         if (err instanceof multer.MulterError) {
-            console.error('[uploadResume] Multer error:', err);
+            console.error('[uploadResume] Multer error:', err.code, err.message);
             if (err.code === 'LIMIT_FILE_SIZE') {
                 return res.status(400).json({
                     success: false,
-                    message: 'File size cannot exceed 5MB'
+                    message: 'File size cannot exceed 10MB'
                 });
             }
             return res.status(400).json({
                 success: false,
-                message: err.message
+                message: `Upload error: ${err.message}`
             });
         } else if (err) {
-            console.error('[uploadResume] General error:', err);
+            // Log more details about the error
+            console.error('[uploadResume] General error:', {
+                message: err.message,
+                code: err.code,
+                name: err.name,
+                stack: err.stack ? err.stack.split('\n').slice(0, 3).join('\n') : 'No stack'
+            });
+            
+            // Check if it's an Unexpected end of form error
+            if (err.message && err.message.includes('Unexpected end of form')) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'File upload was interrupted. Please try uploading a smaller file or check your connection.'
+                });
+            }
+            
             return res.status(500).json({
                 success: false,
-                message: err.message
+                message: `Server error during upload: ${err.message}`
             });
         }
         

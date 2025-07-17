@@ -90,13 +90,17 @@ const Profile = () => {
       const file = e.target.files[0];
       if (!file) return;
       
-      if (type === 'resume' && file.size > 5 * 1024 * 1024) {
-        toast.error("File size should be less than 5MB");
+      // Increase size limits for uploads
+      const maxSize = type === 'resume' ? 10 * 1024 * 1024 : 5 * 1024 * 1024;
+      const maxSizeDisplay = type === 'resume' ? '10MB' : '5MB';
+      
+      if (file.size > maxSize) {
+        toast.error(`File size should be less than ${maxSizeDisplay}`);
         return;
       }
       
       setLoading(true);
-      console.log(`Uploading ${type}:`, file.name, file.type, file.size);
+      console.log(`Uploading ${type}:`, file.name, file.type, `${Math.round(file.size/1024)}KB`);
       
       // Create form data for file upload
       const formData = new FormData();
