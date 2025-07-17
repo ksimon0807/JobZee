@@ -12,6 +12,13 @@ const OAuthCallback = () => {
     useEffect(() => {
         const searchParams = new URLSearchParams(location.search);
         const error = searchParams.get('error');
+        const token = searchParams.get('token');
+
+        // Save the token from URL if available
+        if (token) {
+            console.log('OAuth callback - token found in URL parameters');
+            localStorage.setItem('token', token);
+        }
 
         // Either we have an error param or we should check for auth
         // No need for success param as OAuth callback is only called on success
@@ -24,10 +31,20 @@ const OAuthCallback = () => {
         const getUserDetails = async () => {
             try {
                 console.log('OAuth callback - attempting to get user data');
+                
+                // Add token to headers if we have it
+                const headers = {};
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                }
+                
                 // Get user data from the server
                 const { data } = await axios.get(
                     `${import.meta.env.VITE_BACKEND_URL}/api/v1/user/getuser`,
-                    { withCredentials: true }
+                    { 
+                        withCredentials: true,
+                        headers 
+                    }
                 );
                 
                 if (data.success && data.user) {

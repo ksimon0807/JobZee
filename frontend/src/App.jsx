@@ -34,9 +34,12 @@ axios.interceptors.request.use(
     // Get token from localStorage as fallback
     const token = localStorage.getItem('token');
     
-    // If token exists and Authorization header is not already set
+    // Always try to include the token in authorization header for cross-domain requests
     if (token && !config.headers.Authorization) {
       config.headers.Authorization = `Bearer ${token}`;
+      console.log(`Adding token to request: ${config.url}`);
+    } else if (!token) {
+      console.log(`No token available for request: ${config.url}`);
     }
     
     return config;

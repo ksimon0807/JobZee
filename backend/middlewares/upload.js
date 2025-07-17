@@ -32,8 +32,18 @@ export const uploadAvatar = (req, res, next) => {
     console.log('[uploadAvatar] Starting avatar upload middleware...');
     console.log('[uploadAvatar] Headers:', {
         contentType: req.headers['content-type'],
-        hasAuthHeader: !!req.headers.authorization
+        hasAuthHeader: !!req.headers.authorization,
+        contentLength: req.headers['content-length'],
+        boundary: req.headers['content-type']?.split('boundary=')[1] || 'none'
     });
+    
+    if (!req.headers['content-type']?.includes('multipart/form-data')) {
+        console.error('[uploadAvatar] Content-Type is not multipart/form-data:', req.headers['content-type']);
+        return res.status(400).json({
+            success: false,
+            message: 'Invalid content type. Use multipart/form-data for file uploads.'
+        });
+    }
     
     const upload = multer({ 
         storage: avatarStorage,
@@ -56,7 +66,7 @@ export const uploadAvatar = (req, res, next) => {
     }).single('avatar');
 
     upload(req, res, function(err) {
-        console.log('[uploadAvatar] Upload complete, checking for errors...');
+        console.log('[uploadAvatar] Upload attempt completed, checking for errors...');
         
         if (err instanceof multer.MulterError) {
             console.error('[uploadAvatar] Multer error:', err);
@@ -77,6 +87,15 @@ export const uploadAvatar = (req, res, next) => {
                 message: err.message
             });
         }
+        
+        // Log request content details for debugging
+        console.log('[uploadAvatar] Request content details:', {
+            hasBody: !!req.body,
+            bodyKeys: req.body ? Object.keys(req.body) : 'None',
+            hasFile: !!req.file,
+            hasFiles: !!req.files,
+            authUser: req.user ? `${req.user._id} (${req.user.role})` : 'No user in request'
+        });
 
         if (!req.file) {
             console.log('[uploadAvatar] No file in request after upload');
@@ -95,8 +114,18 @@ export const uploadResume = (req, res, next) => {
     console.log('[uploadResume] Starting resume upload middleware...');
     console.log('[uploadResume] Headers:', {
         contentType: req.headers['content-type'],
-        hasAuthHeader: !!req.headers.authorization
+        hasAuthHeader: !!req.headers.authorization,
+        contentLength: req.headers['content-length'],
+        boundary: req.headers['content-type']?.split('boundary=')[1] || 'none'
     });
+    
+    if (!req.headers['content-type']?.includes('multipart/form-data')) {
+        console.error('[uploadResume] Content-Type is not multipart/form-data:', req.headers['content-type']);
+        return res.status(400).json({
+            success: false,
+            message: 'Invalid content type. Use multipart/form-data for file uploads.'
+        });
+    }
     
     // For Supabase, we use memory storage to get the file buffer
     const storage = multer.memoryStorage();
@@ -124,6 +153,8 @@ export const uploadResume = (req, res, next) => {
     }).single('resume');
 
     upload(req, res, function(err) {
+        console.log('[uploadResume] Upload attempt completed');
+        
         if (err instanceof multer.MulterError) {
             console.error('[uploadResume] Multer error:', err);
             if (err.code === 'LIMIT_FILE_SIZE') {
@@ -142,6 +173,18 @@ export const uploadResume = (req, res, next) => {
                 success: false,
                 message: err.message
             });
+        }
+        
+        // Log details about the file received
+        if (req.file) {
+            console.log('[uploadResume] File received successfully:', {
+                originalname: req.file.originalname,
+                mimetype: req.file.mimetype,
+                size: req.file.size,
+                buffer: req.file.buffer ? `${req.file.buffer.length} bytes` : 'None'
+            });
+        } else {
+            console.log('[uploadResume] No file in request');
         }
 
         // Do NOT require a file. Just proceed.

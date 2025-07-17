@@ -35,8 +35,13 @@ export const sendToken = (user, statusCode, res, message, redirectUrl = null) =>
   
   // Either redirect or return JSON based on whether redirectUrl is provided
   if (redirectUrl) {
-    console.log(`[sendToken] Redirecting to: ${redirectUrl}`);
-    return res.redirect(redirectUrl);
+    // Add token to URL for OAuth redirect to ensure frontend gets it
+    // Frontend will extract it from URL and save to localStorage
+    const separator = redirectUrl.includes('?') ? '&' : '?';
+    const redirectWithToken = `${redirectUrl}${separator}token=${token}`;
+    
+    console.log(`[sendToken] Redirecting to: ${redirectWithToken.replace(/token=([^&]+)/, 'token=REDACTED')}`);
+    return res.redirect(redirectWithToken);
   } else {
     return res.status(statusCode).json({
       success: true,

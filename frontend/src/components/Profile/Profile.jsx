@@ -105,13 +105,15 @@ const Profile = () => {
       // Get token from localStorage as fallback
       const token = localStorage.getItem('token');
       
-      // Prepare headers with token if available
-      const headers = {
-        'Content-Type': 'multipart/form-data'
-      };
+      // For file uploads, we should NOT set Content-Type header
+      // Axios will automatically set the correct Content-Type with boundary
+      const headers = {};
       
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
+        console.log(`Adding token to ${type} upload request`);
+      } else {
+        console.warn(`No token available for ${type} upload`);
       }
       
       console.log(`Making upload request to: ${import.meta.env.VITE_BACKEND_URL}/api/v1/user/profile/${type}`);
