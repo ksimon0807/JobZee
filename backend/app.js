@@ -103,6 +103,15 @@ app.use(passport.session());
   try {
     await dbConnection();
     console.log('Connected to database');
+    
+    // Also check Supabase resources
+    try {
+      const checkSupabaseResources = (await import('./scripts/check_supabase.js')).default;
+      await checkSupabaseResources();
+    } catch (supabaseErr) {
+      console.warn('Supabase initialization check failed:', supabaseErr.message);
+      console.warn('App will continue with limited functionality');
+    }
   } catch (err) {
     console.error('Database connection error:', err.message);
     console.log('Retrying database connection...');
