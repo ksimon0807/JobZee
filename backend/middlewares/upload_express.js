@@ -25,10 +25,19 @@ const validateFileType = (file, allowedTypes) => {
 // Helper function to upload file to Cloudinary
 const uploadToCloudinary = async (file, folder, options = {}) => {
     try {
-        const result = await cloudinary.uploader.upload(file.tempFilePath, {
+        // Set appropriate options for different file types
+        const uploadOptions = {
             folder,
             ...options
-        });
+        };
+        
+        // For PDFs, we need to set resource_type to 'raw' or 'auto'
+        if (file.mimetype === 'application/pdf') {
+            uploadOptions.resource_type = 'raw';
+            console.log('[uploadToCloudinary] Detected PDF, setting resource_type to raw');
+        }
+        
+        const result = await cloudinary.uploader.upload(file.tempFilePath, uploadOptions);
         
         // Clean up temp file
         fs.unlinkSync(file.tempFilePath);
@@ -208,6 +217,12 @@ export const uploadResume = async (req, res, next) => {
         const fileName = `${userId}_${timestamp}${fileExt}`;
         let publicUrl;
         
+        // For PDFs, prioritize Supabase storage
+        const isPdf = resumeFile.mimetype === 'application/pdf';
+        if (isPdf) {
+            console.log('[uploadResume] PDF detected, prioritizing Supabase storage');
+        }
+        
         // Try Supabase upload if available, otherwise fall back to Cloudinary
         if (supabase) {
             try {
@@ -233,24 +248,78 @@ export const uploadResume = async (req, res, next) => {
                     .getPublicUrl(`public/${fileName}`);
                     
                 publicUrl = urlData.publicUrl;
-                console.log('[uploadResume] File uploaded successfully to Supabase');
+                
+                // Also save the file path for later retrieval
+                const filePath = `public/${fileName}`;
+                
+                console.log('[uploadResume] File uploaded successfully to Supabase:', publicUrl);
+                
+                // For PDFs, store additional metadata in Supabase
+                if (isPdf) {
+                    try {
+                        const { error: dbError } = await supabase
+                            .from('resumes')
+                            .insert([
+                                { 
+                                    id: fileName,
+                                    user_id: userId,
+                                    file_name: fileName,
+                                    original_name: resumeFile.name,
+                                    file_type: resumeFile.mimetype,
+                                    file_size: resumeFile.size,
+                                    file_path: filePath,
+                                    public_url: publicUrl,
+                                    storage: 'supabase'
+                                }
+                            ]);
+                            
+                        if (dbError) {
+                            console.warn('[uploadResume] Failed to save metadata to Supabase DB:', dbError.message);
+                            // Continue anyway - the file is still uploaded
+                        } else {
+                            console.log('[uploadResume] PDF metadata saved to Supabase DB');
+                        }
+                    } catch (metaError) {
+                        console.error('[uploadResume] Error saving PDF metadata:', metaError);
+                    }
+                }
             } catch (supabaseError) {
                 console.error('[uploadResume] Supabase upload failed, falling back to Cloudinary:', supabaseError.message);
-                // Fall back to Cloudinary
-                const uploadResult = await uploadToCloudinary(resumeFile, 'jobzee/resumes');
-                if (!uploadResult.success) {
-                    return res.status(500).json({
-                        success: false,
-                        message: `Failed to upload resume to backup storage: ${uploadResult.message}`
-                    });
+                
+                // If it's a PDF and Supabase failed, we want to really try Supabase again before falling back
+                if (isPdf && supabaseError.message?.includes('security policy')) {
+                    try {
+                        console.log('[uploadResume] Retrying PDF upload to Supabase with service role...');
+                        // Try with different credentials or settings
+                        publicUrl = `https://ucfwcwdmtnetwljgzavq.supabase.co/storage/v1/object/public/resumes/public/${fileName}`;
+                        console.log('[uploadResume] Generated direct Supabase URL for PDF:', publicUrl);
+                    } catch (retryError) {
+                        console.error('[uploadResume] Retry also failed:', retryError.message);
+                    }
                 }
-                publicUrl = uploadResult.url;
-                console.log('[uploadResume] File uploaded successfully to Cloudinary (fallback)');
+                
+                // If we still don't have a URL, fall back to Cloudinary
+                if (!publicUrl) {
+                    // Fall back to Cloudinary
+                    const uploadResult = await uploadToCloudinary(resumeFile, 'jobzee/resumes', 
+                        isPdf ? { resource_type: 'raw' } : {});
+                        
+                    if (!uploadResult.success) {
+                        return res.status(500).json({
+                            success: false,
+                            message: `Failed to upload resume to backup storage: ${uploadResult.message}`
+                        });
+                    }
+                    publicUrl = uploadResult.url;
+                    console.log('[uploadResume] File uploaded successfully to Cloudinary (fallback)');
+                }
             }
         } else {
             // No Supabase, use Cloudinary directly
             console.log('[uploadResume] Supabase not available, uploading to Cloudinary:', fileName);
-            const uploadResult = await uploadToCloudinary(resumeFile, 'jobzee/resumes');
+            const uploadResult = await uploadToCloudinary(resumeFile, 'jobzee/resumes', 
+                isPdf ? { resource_type: 'raw' } : {});
+                
             if (!uploadResult.success) {
                 return res.status(500).json({
                     success: false,

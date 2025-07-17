@@ -323,13 +323,40 @@ export const getUserResume = catchAsyncError(async (req, res, next) => {
     const user = await User.findById(userId);
     if (user?.resume?.url) {
       console.log('[getUserResume] Resume found in MongoDB user document');
-      // Use the resume info from the user document in MongoDB
+      
+      // Check if this is likely a PDF by examining the URL or file extension
+      const isPdf = user.resume.url.toLowerCase().endsWith('.pdf') || 
+                   user.resume.public_id.toLowerCase().endsWith('.pdf');
+      
+      // For PDFs, try to prioritize getting from Supabase if available
+      if (isPdf) {
+        console.log('[getUserResume] PDF detected in MongoDB, checking if it exists in Supabase first');
+        try {
+          const supabaseResume = await ResumeService.getUserResume(userId);
+          if (supabaseResume) {
+            console.log('[getUserResume] Found PDF in Supabase, using that instead');
+            return res.status(200).json({
+              success: true,
+              resume: {
+                ...supabaseResume,
+                url: supabaseResume.public_url || supabaseResume.url
+              }
+            });
+          }
+        } catch (supabaseError) {
+          console.warn('[getUserResume] Failed to get PDF from Supabase:', supabaseError.message);
+          // Continue with MongoDB version
+        }
+      }
+      
+      // If no Supabase version or not a PDF, use the MongoDB version
       const mongoResume = {
         id: user.resume.public_id || 'mongodb_resume',
         file_name: user.resume.public_id || 'user_resume',
         url: user.resume.url,
         public_url: user.resume.url,
         user_id: userId,
+        file_type: isPdf ? 'application/pdf' : 'image/jpeg',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         size: 0 // Size info not available

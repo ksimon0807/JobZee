@@ -109,6 +109,13 @@ export const ResumeService = {
     try {
       console.log('[ResumeService] Getting resume for user:', userId);
       
+      // Check if supabase is initialized
+      if (!supabase || typeof supabase.from !== 'function') {
+        console.warn('[ResumeService] Supabase not initialized properly');
+        return null;
+      }
+      
+      // First try to get from the resumes table
       const { data, error } = await supabase
         .from('resumes')
         .select('*')
@@ -118,10 +125,79 @@ export const ResumeService = {
       
       if (error) {
         console.error('[ResumeService] Query error:', error);
-        throw new Error(error.message);
+        // Don't throw - we'll try other methods
       }
       
-      return data.length > 0 ? data[0] : null;
+      // If we found a resume in the database
+      if (data && data.length > 0) {
+        console.log('[ResumeService] Resume found in Supabase database');
+        
+        // Ensure we have proper URLs
+        const resume = data[0];
+        if (!resume.public_url && resume.file_path) {
+          // Try to construct the public URL if missing
+          try {
+            const { data: urlData } = await supabase
+              .storage
+              .from('resumes')
+              .getPublicUrl(resume.file_path);
+              
+            resume.public_url = urlData.publicUrl;
+          } catch (urlError) {
+            console.error('[ResumeService] Error getting public URL:', urlError);
+          }
+        }
+        
+        return resume;
+      }
+      
+      // If we can't find it in the database, let's try to list files in storage
+      // This is a fallback for PDFs that might be in storage but not in the database
+      console.log('[ResumeService] No resume in database, checking storage...');
+      
+      try {
+        const { data: listData, error: listError } = await supabase
+          .storage
+          .from('resumes')
+          .list('public', {
+            search: userId
+          });
+          
+        if (listError) {
+          console.error('[ResumeService] Storage list error:', listError);
+          return null;
+        }
+        
+        if (listData && listData.length > 0) {
+          console.log('[ResumeService] Found files in storage:', listData.length);
+          
+          // Find the most recent PDF file
+          const pdfFile = listData.find(file => 
+            file.name.includes(userId) && file.name.toLowerCase().endsWith('.pdf'));
+            
+          if (pdfFile) {
+            console.log('[ResumeService] Found PDF in storage:', pdfFile.name);
+            
+            const { data: urlData } = await supabase
+              .storage
+              .from('resumes')
+              .getPublicUrl(`public/${pdfFile.name}`);
+              
+            return {
+              id: pdfFile.name,
+              file_name: pdfFile.name,
+              user_id: userId,
+              file_type: 'application/pdf',
+              public_url: urlData.publicUrl,
+              created_at: pdfFile.created_at || new Date().toISOString()
+            };
+          }
+        }
+      } catch (storageError) {
+        console.error('[ResumeService] Storage search error:', storageError);
+      }
+      
+      return null;
     } catch (error) {
       console.error('[ResumeService] Error getting resume:', error);
       throw error;
