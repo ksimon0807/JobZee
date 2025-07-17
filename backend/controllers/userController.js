@@ -307,21 +307,48 @@ export const handleResumeUpload = catchAsyncError(async (req, res, next) => {
   }
 });
 
-// Get the user's resume from Supabase
+// Get the user's resume (first from MongoDB, fallback to Supabase)
 export const getUserResume = catchAsyncError(async (req, res, next) => {
   try {
-    // Fix: req.user.id is undefined because req.user is a lean() object from MongoDB
-    // Use req.user._id instead
+    // Use req.user._id since req.user is a lean() object from MongoDB
     const userId = req.params.userId || req.user._id?.toString();
     // Check if the user is authorized to access this resume
     if (req.params.userId && req.user._id?.toString() !== req.params.userId && req.user.role !== 'Employer') {
       return next(new ErrorHandler("Not authorized to access this resume", 403));
     }
-    // Get resume from Supabase
+
+    console.log(`[getUserResume] Looking up resume for user ${userId}`);
+
+    // First check MongoDB for the resume URL
+    const user = await User.findById(userId);
+    if (user?.resume?.url) {
+      console.log('[getUserResume] Resume found in MongoDB user document');
+      // Use the resume info from the user document in MongoDB
+      const mongoResume = {
+        id: user.resume.public_id || 'mongodb_resume',
+        file_name: user.resume.public_id || 'user_resume',
+        url: user.resume.url,
+        public_url: user.resume.url,
+        user_id: userId,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        size: 0 // Size info not available
+      };
+
+      return res.status(200).json({
+        success: true,
+        resume: mongoResume
+      });
+    }
+    
+    console.log('[getUserResume] No resume in MongoDB, trying Supabase...');
+    
+    // If not found in MongoDB, try Supabase
     const resumeData = await ResumeService.getUserResume(userId);
     if (!resumeData) {
       return next(new ErrorHandler("Resume not found", 404));
     }
+    
     // Always return a 'url' field for frontend compatibility
     const normalizedResume = {
       ...resumeData,
@@ -337,7 +364,7 @@ export const getUserResume = catchAsyncError(async (req, res, next) => {
   }
 });
 
-// Delete a resume from Supabase
+// Delete a resume from storage and MongoDB
 export const deleteResume = catchAsyncError(async (req, res, next) => {
   try {
     const { resumeId } = req.params;
@@ -346,14 +373,37 @@ export const deleteResume = catchAsyncError(async (req, res, next) => {
       return next(new ErrorHandler("Resume ID is required", 400));
     }
     
-    // Delete resume from Supabase
-    await ResumeService.deleteResume(resumeId, req.user.id);
+    // First, update the user document in MongoDB to remove the resume reference
+    const user = await User.findById(req.user._id);
     
-    // Update the user document
-    const user = await User.findById(req.user.id);
-    if (user && user.resume) {
-      user.resume = null;
+    if (user?.resume) {
+      // If resume is stored in Cloudinary, delete it
+      if (user.resume.public_id) {
+        try {
+          // Delete from Cloudinary if the URL is from Cloudinary
+          if (user.resume.url.includes('cloudinary')) {
+            await cloudinary.uploader.destroy(user.resume.public_id);
+            console.log(`[deleteResume] Deleted resume from Cloudinary: ${user.resume.public_id}`);
+          }
+        } catch (err) {
+          console.error(`[deleteResume] Failed to delete from Cloudinary: ${err.message}`);
+          // Continue anyway - we'll at least remove the reference from MongoDB
+        }
+      }
+      
+      // Remove resume reference from user document
+      user.resume = undefined;
       await user.save();
+      console.log(`[deleteResume] Removed resume reference from MongoDB user document`);
+    }
+    
+    // Try to delete from Supabase as well if available
+    try {
+      await ResumeService.deleteResume(resumeId, req.user._id?.toString());
+      console.log(`[deleteResume] Deleted resume from Supabase: ${resumeId}`);
+    } catch (supabaseError) {
+      console.error(`[deleteResume] Failed to delete from Supabase: ${supabaseError.message}`);
+      // Continue anyway since we've already updated MongoDB
     }
     
     res.status(200).json({
