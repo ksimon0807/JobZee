@@ -59,7 +59,14 @@ app.use(cookieParser());
 app.use(fileUpload({
   useTempFiles: true,
   tempFileDir: "/tmp/",
-  debug: true
+  debug: true,
+  parseNested: true,
+  abortOnLimit: true,
+  limitHandler: (req, res, next) => {
+    res.status(413).json({ success: false, message: 'File size limit exceeded' });
+  },
+  createParentPath: true,
+  safeFileNames: true
 }));
 
 // Initialize passport configuration
@@ -91,8 +98,24 @@ app.use(
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Connect to database
-dbConnection();
+// Connect to database - with retry capability
+(async () => {
+  try {
+    await dbConnection();
+    console.log('Connected to database');
+  } catch (err) {
+    console.error('Database connection error:', err.message);
+    console.log('Retrying database connection...');
+    setTimeout(async () => {
+      try {
+        await dbConnection();
+        console.log('Connected to database on retry');
+      } catch (retryErr) {
+        console.error('Database connection retry failed:', retryErr.message);
+      }
+    }, 5000);
+  }
+})();
 
 // API Routes
 app.use("/api/v1/user", userRouter);
@@ -101,20 +124,6 @@ app.use("/api/v1/job", jobRouter);
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/app-counts", applicationCountRouter);
 app.use("/auth/google", googleAuthRouter);  // Mount Google auth routes at /auth/google
-
-// Initialize passport
-app.use(passport.initialize());
-app.use(passport.session());
-
-// Connect to database
-dbConnection();
-
-// API Routes
-app.use("/api/v1/user", userRouter);
-app.use("/api/v1/application", applicationRouter);
-app.use("/api/v1/job", jobRouter);
-app.use("/api/v1/auth", authRouter);
-app.use("/api/v1/app-counts", applicationCountRouter);
 app.use("/auth/google", googleAuthRouter);
 
 // Error Middleware

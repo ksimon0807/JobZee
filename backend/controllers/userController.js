@@ -358,7 +358,7 @@ export const getUserResume = catchAsyncError(async (req, res, next) => {
         try {
           const supabaseResume = await ResumeService.getUserResume(userId);
           if (supabaseResume) {
-            console.log('[getUserResume] Found PDF in Supabase, using that instead');
+            console.log('[getUserResume] Found PDF in Supabase storage, using that URL instead');
             return res.status(200).json({
               success: true,
               resume: {
