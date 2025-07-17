@@ -1,6 +1,15 @@
 import supabase from '../config/supabase.js';
 import ErrorHandler from '../middlewares/error.js';
 
+// Helper function to safely log objects
+const safeLog = (prefix, obj) => {
+  try {
+    console.log(`${prefix}:`, JSON.stringify(obj, null, 2));
+  } catch (err) {
+    console.log(`${prefix} (stringify failed):`, obj);
+  }
+};
+
 // Resume operations service
 export const ResumeService = {
   /**
@@ -19,8 +28,22 @@ export const ResumeService = {
       
       // Generate a unique filename
       const timestamp = Date.now();
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${userId}_${timestamp}.${fileExt}`;
+      
+      // Handle file extension safely - ensure PDF files have .pdf extension
+      let fileName;
+      if (file.name && file.name.includes('.')) {
+        // Get extension from original filename
+        const fileExt = file.name.split('.').pop();
+        fileName = `${userId}_${timestamp}.${fileExt}`;
+      } else {
+        // No extension found in original name, use mimetype
+        const ext = file.mimetype === 'application/pdf' ? 'pdf' : 
+                    file.mimetype === 'image/jpeg' ? 'jpg' : 
+                    file.mimetype === 'image/png' ? 'png' : 'bin';
+        fileName = `${userId}_${timestamp}.${ext}`;
+      }
+      
+      console.log(`[ResumeService] Generated filename: ${fileName} from original: ${file.name}`);
       
       // Upload to Supabase Storage using the temporary file created by express-fileupload
       const fs = await import('fs');
@@ -69,6 +92,8 @@ export const ResumeService = {
         console.error('[ResumeService] Upload error:', error);
         throw new Error(error.message);
       }
+      
+      console.log('[ResumeService] Upload successful:', data);
       
       // Get the public URL - safely
       let publicUrl = '';
@@ -297,14 +322,34 @@ export const ResumeService = {
             if (listData && listData.length > 0) {
               console.log('[ResumeService] Found files in storage:', listData.length);
               
+              // Debug file list
+              console.log('[ResumeService] All files:', listData.map(file => file.name).join(', '));
+              // Log detailed file information to help debug
+              safeLog('[ResumeService] Detailed file list', listData);
+              
               // Manually filter and sort on our side to avoid complex query parameters
+              // Note: Some files might not have .pdf extension in their name
               const pdfFiles = listData
-                .filter(file => file.name && file.name.includes(userId) && file.name.toLowerCase().endsWith('.pdf'))
+                .filter(file => {
+                  // Check if the file exists and has a name
+                  if (!file || !file.name) return false;
+                  
+                  // Check if this file belongs to the current user
+                  const isUsersFile = file.name.includes(userId);
+                  
+                  // Check if it's a PDF file (either by extension or by naming pattern)
+                  const isPdfByExtension = file.name.toLowerCase().endsWith('.pdf');
+                  const isPdfByTimestamp = /^\d+_\d+$/.test(file.name); // Matches userId_timestamp pattern
+                  
+                  return isUsersFile && (isPdfByExtension || isPdfByTimestamp);
+                })
                 .sort((a, b) => b.name.localeCompare(a.name)); // Sort by name descending (newer files have higher timestamps)
-                
-              if (pdfFiles.length > 0) {
+                if (pdfFiles.length > 0) {
                 const pdfFile = pdfFiles[0]; // Get most recent PDF
                 console.log('[ResumeService] Found PDF in storage:', pdfFile.name);
+              } else {
+                console.log(`[ResumeService] No PDF files found matching userId ${userId} after filtering`);
+              }
                 
                 // Get the public URL
                 const { data: urlData } = await supabase
