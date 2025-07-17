@@ -29,7 +29,7 @@ router.get("/callback",
     console.log('Callback route - state parameter:', req.query.state);
     passport.authenticate('google', { 
       session: false,
-      failureRedirect: '/auth/callback?error=true'
+      failureRedirect: `${process.env.FRONTEND_URL}/login?error=GoogleAuthFailed`
     })(req, res, next);
   },
   async (req, res) => {
@@ -37,7 +37,7 @@ router.get("/callback",
       const user = req.user;
       
       if (!user) {
-        return res.redirect(`${process.env.FRONTEND_URL}/auth/callback?error=Authentication failed`);
+        return res.redirect(`${process.env.FRONTEND_URL}/login?error=Authentication failed`);
       }
       
       // Get the role from state parameter
@@ -54,27 +54,31 @@ router.get("/callback",
       // Generate token
       const token = generateToken(user);
 
-      // Set cookie
+      // Set cookie with proper options for cross-site authentication
+      const isProduction = process.env.NODE_ENV === 'production';
       const options = {
         expires: new Date(
           Date.now() + process.env.COOKIE_EXPIRE * 24 * 60 * 60 * 1000
         ),
         httpOnly: true,
+        secure: isProduction, // Only set to true in production (HTTPS)
+        sameSite: isProduction ? 'none' : 'lax', // Allow cross-site requests in production
+        path: '/'
       };
 
-      // Set cookie and redirect to frontend
+      // Set cookie and redirect to frontend homepage instead of callback path
       res
         .status(200)
         .cookie("token", token, options)
-        .redirect(`${process.env.FRONTEND_URL}/auth/callback?success=true`);
+        .redirect(`${process.env.FRONTEND_URL}`);
     } catch (error) {
       console.error("Error in Google OAuth:", error.message);
       console.error("Full error:", error);
       
-      // Send a more specific error message
+      // Send a more specific error message and redirect to login page with error
       const errorMessage = encodeURIComponent(error.message || 'Authentication failed');
       res.redirect(
-        `${process.env.FRONTEND_URL}/auth/callback?error=${errorMessage}`
+        `${process.env.FRONTEND_URL}/login?error=${errorMessage}`
       );
     }
   }
