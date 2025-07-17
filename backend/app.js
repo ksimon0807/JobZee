@@ -54,10 +54,12 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// Handle file uploads
+// Handle file uploads with express-fileupload middleware
+// This is used for general file uploads, while multer is used specifically for avatar and resume uploads
 app.use(fileUpload({
   useTempFiles: true,
   tempFileDir: "/tmp/",
+  debug: true
 }));
 
 // Initialize passport configuration

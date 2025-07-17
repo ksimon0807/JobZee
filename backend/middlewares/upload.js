@@ -29,12 +29,20 @@ const resumeStorage = new CloudinaryStorage({
 
 // Create Multer instances with middleware wrapper
 export const uploadAvatar = (req, res, next) => {
+    console.log('[uploadAvatar] Starting avatar upload middleware...');
+    console.log('[uploadAvatar] Headers:', {
+        contentType: req.headers['content-type'],
+        hasAuthHeader: !!req.headers.authorization
+    });
+    
     const upload = multer({ 
         storage: avatarStorage,
         limits: {
             fileSize: 1024 * 1024 * 2 // 2MB max file size
         },
         fileFilter: (req, file, cb) => {
+            console.log('[uploadAvatar] Processing file:', file.originalname, file.mimetype);
+            
             if (!file) {
                 return cb(new Error('No file uploaded'), false);
             }
@@ -48,7 +56,10 @@ export const uploadAvatar = (req, res, next) => {
     }).single('avatar');
 
     upload(req, res, function(err) {
+        console.log('[uploadAvatar] Upload complete, checking for errors...');
+        
         if (err instanceof multer.MulterError) {
+            console.error('[uploadAvatar] Multer error:', err);
             if (err.code === 'LIMIT_FILE_SIZE') {
                 return res.status(400).json({
                     success: false,
@@ -60,6 +71,7 @@ export const uploadAvatar = (req, res, next) => {
                 message: err.message
             });
         } else if (err) {
+            console.error('[uploadAvatar] General error:', err);
             return res.status(500).json({
                 success: false,
                 message: err.message
@@ -67,18 +79,24 @@ export const uploadAvatar = (req, res, next) => {
         }
 
         if (!req.file) {
+            console.log('[uploadAvatar] No file in request after upload');
             return res.status(400).json({
                 success: false,
                 message: 'Please select a file to upload'
             });
         }
 
+        console.log('[uploadAvatar] File upload successful:', req.file.originalname);
         next();
     });
 };
 
 export const uploadResume = (req, res, next) => {
-    console.log('Starting resume upload middleware...');
+    console.log('[uploadResume] Starting resume upload middleware...');
+    console.log('[uploadResume] Headers:', {
+        contentType: req.headers['content-type'],
+        hasAuthHeader: !!req.headers.authorization
+    });
     
     // For Supabase, we use memory storage to get the file buffer
     const storage = multer.memoryStorage();
@@ -89,9 +107,10 @@ export const uploadResume = (req, res, next) => {
             fileSize: 1024 * 1024 * 5 // 5MB max file size for resumes
         },
         fileFilter: (req, file, cb) => {
-            console.log('Resume upload - File:', file);
+            console.log('[uploadResume] Processing file:', file.originalname, file.mimetype, file.size);
             
             if (!file) {
+                console.log('[uploadResume] No file provided');
                 return cb(new Error('No file uploaded'), false);
             }
 
@@ -106,6 +125,7 @@ export const uploadResume = (req, res, next) => {
 
     upload(req, res, function(err) {
         if (err instanceof multer.MulterError) {
+            console.error('[uploadResume] Multer error:', err);
             if (err.code === 'LIMIT_FILE_SIZE') {
                 return res.status(400).json({
                     success: false,
@@ -117,6 +137,7 @@ export const uploadResume = (req, res, next) => {
                 message: err.message
             });
         } else if (err) {
+            console.error('[uploadResume] General error:', err);
             return res.status(500).json({
                 success: false,
                 message: err.message
@@ -131,7 +152,17 @@ export const uploadResume = (req, res, next) => {
         //     });
         // }
 
-        console.log('Resume upload middleware complete. Proceeding to controller.');
+        if (req.file) {
+            console.log('[uploadResume] File received successfully:', {
+                filename: req.file.originalname,
+                size: req.file.size,
+                mimetype: req.file.mimetype
+            });
+        } else {
+            console.log('[uploadResume] No file in request, but proceeding anyway');
+        }
+
+        console.log('[uploadResume] Upload middleware complete. Proceeding to controller.');
         next();
     });
 };

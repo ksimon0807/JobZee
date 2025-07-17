@@ -96,18 +96,32 @@ const Profile = () => {
       }
       
       setLoading(true);
+      console.log(`Uploading ${type}:`, file.name, file.type, file.size);
       
+      // Create form data for file upload
       const formData = new FormData();
       formData.append(type, file);
+      
+      // Get token from localStorage as fallback
+      const token = localStorage.getItem('token');
+      
+      // Prepare headers with token if available
+      const headers = {
+        'Content-Type': 'multipart/form-data'
+      };
+      
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
+      console.log(`Making upload request to: ${import.meta.env.VITE_BACKEND_URL}/api/v1/user/profile/${type}`);
       
       const { data } = await axios.post(
         `${import.meta.env.VITE_BACKEND_URL}/api/v1/user/profile/${type}`,
         formData,
         { 
           withCredentials: true,
-          headers: {
-            'Content-Type': 'multipart/form-data'
-          }
+          headers
         }
       );
       
@@ -134,7 +148,20 @@ const Profile = () => {
         }
       }
     } catch (error) {
-      toast.error(error.response?.data?.message || `Failed to upload ${type}`);
+      console.error(`Error uploading ${type}:`, error);
+      
+      // Detailed error information
+      if (error.response) {
+        console.error('Response error data:', error.response.data);
+        console.error('Response error status:', error.response.status);
+        toast.error(error.response.data?.message || `Server error: ${error.response.status}`);
+      } else if (error.request) {
+        console.error('Request error:', error.request);
+        toast.error(`Network error: Could not connect to server`);
+      } else {
+        console.error('Error message:', error.message);
+        toast.error(`Error: ${error.message}`);
+      }
     } finally {
       setLoading(false);
     }
