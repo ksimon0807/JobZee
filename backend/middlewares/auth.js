@@ -8,22 +8,42 @@ export const isAuthorized = catchAsyncError(async (req, res, next) => {
   
   const { token } = req.cookies;
   console.log('[Auth Middleware] Token from cookies:', token ? 'Present' : 'Missing');
+  console.log('[Auth Middleware] All cookies:', req.cookies);
+  console.log('[Auth Middleware] Headers:', {
+    origin: req.headers.origin,
+    referer: req.headers.referer,
+    host: req.headers.host,
+    contentType: req.headers['content-type']
+  });
   
-  if (!token) {
-    console.log('[Auth Middleware] No token found');
-    return next(new ErrorHandler("Not authorized, please login first", 401));
+  let tokenToVerify = token;
+  
+  if (!tokenToVerify) {
+    console.log('[Auth Middleware] No token found in cookies, checking headers for token');
+    
+    // Try to get token from Authorization header as fallback
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      tokenToVerify = authHeader.split(' ')[1];
+      console.log('[Auth Middleware] Found token in Authorization header');
+    }
+    
+    if (!tokenToVerify) {
+      console.log('[Auth Middleware] No token in cookies or headers');
+      return next(new ErrorHandler("Not authorized, please login first", 401));
+    }
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY);
-    console.log('[Auth Middleware] Token verified, fetching user...');
+    const decoded = jwt.verify(tokenToVerify, process.env.JWT_SECRET_KEY);
+    console.log('[Auth Middleware] Token verified, fetching user with ID:', decoded.id);
     
     // Remove .lean() so we get a real Mongoose document
     const user = await User.findById(decoded.id)
       .select('+googleId');
     
     if (!user) {
-      console.log('[Auth Middleware] User not found');
+      console.log('[Auth Middleware] User not found for ID:', decoded.id);
       return next(new ErrorHandler("User not found", 404));
     }
     

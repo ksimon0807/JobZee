@@ -1,15 +1,9 @@
 import express from "express";
 import passport from "passport";
 import jwt from "jsonwebtoken";
+import { sendToken } from "../utils/jwtToken.js";
 
 const router = express.Router();
-
-// Helper function to generate token
-const generateToken = (user) => {
-  return jwt.sign({ id: user._id }, process.env.JWT_SECRET_KEY, {
-    expiresIn: process.env.JWT_EXPIRE,
-  });
-};
 
 // Route to initiate Google OAuth
 router.get('/', (req, res, next) => {
@@ -51,26 +45,15 @@ router.get("/callback",
         console.log(`Updated user role to ${role}`);
       }
       
-      // Generate token
-      const token = generateToken(user);
-
-      // Set cookie with proper options for cross-site authentication
-      const isProduction = process.env.NODE_ENV === 'production';
-      const options = {
-        expires: new Date(
-          Date.now() + process.env.COOKIE_EXPIRE * 24 * 60 * 60 * 1000
-        ),
-        httpOnly: true,
-        secure: isProduction, // Only set to true in production (HTTPS)
-        sameSite: isProduction ? 'none' : 'lax', // Allow cross-site requests in production
-        path: '/'
-      };
-
-      // Set cookie and redirect to frontend homepage instead of callback path
-      res
-        .status(200)
-        .cookie("token", token, options)
-        .redirect(`${process.env.FRONTEND_URL}`);
+      // Use the sendToken utility for consistent cookie handling
+      console.log('[OAuth] Generating token for Google OAuth user:', { id: user._id, role: user.role });
+      
+      // Call sendToken but capture the modified response so we can redirect
+      const redirectUrl = `${process.env.FRONTEND_URL}`;
+      console.log(`[OAuth] Will redirect to: ${redirectUrl}`);
+      
+      // Use the sendToken utility with redirect
+      sendToken(user, 200, res, "Google authentication successful", redirectUrl);
     } catch (error) {
       console.error("Error in Google OAuth:", error.message);
       console.error("Full error:", error);

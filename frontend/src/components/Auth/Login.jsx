@@ -22,6 +22,8 @@ const Login = () => {
     setLoading(true);
 
     try {
+      console.log('Attempting login with URL:', `${import.meta.env.VITE_BACKEND_URL}/api/v1/user/login`);
+      
       const { data } = await axios.post(
         `${import.meta.env.VITE_BACKEND_URL}/api/v1/user/login`,
         { email, password, role },
@@ -32,14 +34,24 @@ const Login = () => {
           withCredentials: true,
         }
       );
+      
+      console.log('Login successful:', data);
       toast.success(data.message);
       setEmail("");
       setRole("");
       setPassword("");
       setIsAuthorized(true);
       setUser(data.user);
+      
+      // Also store in localStorage as fallback
+      localStorage.setItem('isAuthorized', 'true');
+      localStorage.setItem('user', JSON.stringify(data.user));
+      localStorage.setItem('token', data.token); // Store token for fallback auth
     } catch (error) {
-      toast.error(error.response?.data?.message || "Login failed");
+      console.error('Login error:', error);
+      const errorMsg = error.response?.data?.message || 
+                       (error.message === 'Network Error' ? 'Network error - check API URL' : 'Login failed');
+      toast.error(errorMsg);
     } finally {
       setLoading(false);
     }

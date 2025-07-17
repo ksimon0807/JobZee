@@ -69,12 +69,27 @@ export const login = catchAsyncError(async (req, res, next) => {
 });
 
 export const logout = catchAsyncError(async (req, res, next) => {
+  // Determine if we're in production
+  const isProduction = process.env.NODE_ENV === 'production';
+  
+  // Use consistent cookie options with sendToken
+  const options = {
+    expires: new Date(Date.now()),
+    httpOnly: true,
+    secure: isProduction, // Only set to true in production (HTTPS)
+    sameSite: isProduction ? 'None' : 'Lax', // Must be capitalized 
+    path: '/'
+  };
+  
+  console.log('[logout] Clearing cookie with options:', {
+    secure: options.secure,
+    sameSite: options.sameSite,
+    environment: process.env.NODE_ENV || 'development'
+  });
+  
   res
     .status(201)
-    .cookie("token", null, {
-      expires: new Date(Date.now()),
-      httpOnly: true,
-    })
+    .cookie("token", null, options)
     .json({
       success: true,
       message: "User logged out successfully!",

@@ -28,6 +28,22 @@ import { Toaster } from "react-hot-toast";
 
 axios.defaults.withCredentials = true;
 
+// Add an axios interceptor to include token in Authorization header
+axios.interceptors.request.use(
+  (config) => {
+    // Get token from localStorage as fallback
+    const token = localStorage.getItem('token');
+    
+    // If token exists and Authorization header is not already set
+    if (token && !config.headers.Authorization) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
 const App = () => {
   const { setIsAuthorized, setUser, isAuthorized } = useContext(Context);
   const [loading, setLoading] = useState(true);
@@ -69,6 +85,12 @@ const App = () => {
     return null;
   };
 
+  // Function to get token (either from cookie or localStorage)
+  const getAuthToken = () => {
+    const cookieToken = getCookie('token');
+    return cookieToken || localStorage.getItem('token');
+  };
+
   useEffect(() => {
     const checkAuth = async () => {
       console.log('Checking auth state on mount/navigation');
@@ -77,9 +99,22 @@ const App = () => {
       try {
         // Always try to fetch user data first - this will work if cookie auth is valid
         try {
+          // Get the token for Authorization header fallback
+          const token = getAuthToken();
+          const headers = {};
+          
+          // If we have a token but it's not in cookies, add it to headers
+          if (token && !getCookie('token')) {
+            console.log('Adding token to Authorization header');
+            headers['Authorization'] = `Bearer ${token}`;
+          }
+          
           const response = await axios.get(
             `${import.meta.env.VITE_BACKEND_URL}/api/v1/user/getuser`,
-            { withCredentials: true }
+            { 
+              withCredentials: true,
+              headers
+            }
           );
           
           if (response.data.success && response.data.user) {
@@ -88,6 +123,10 @@ const App = () => {
             setIsAuthorized(true);
             localStorage.setItem('isAuthorized', 'true');
             localStorage.setItem('user', JSON.stringify(response.data.user));
+            // Save token in localStorage as fallback
+            if (!getCookie('token') && token) {
+              localStorage.setItem('token', token);
+            }
             setLoading(false);
             return; // Exit early if API auth worked
           }
@@ -98,7 +137,7 @@ const App = () => {
         
         // Fallback to localStorage if API call fails
         const savedAuth = localStorage.getItem('isAuthorized');
-        const token = getCookie('token');
+        const token = getAuthToken();
         
         console.log('Auth check:', { 
           savedAuth, 
@@ -121,6 +160,7 @@ const App = () => {
           setUser({});
           localStorage.removeItem('isAuthorized');
           localStorage.removeItem('user');
+          localStorage.removeItem('token');
         }
       } catch (error) {
         console.error("Auth check error:", error);
@@ -135,7 +175,7 @@ const App = () => {
 
     // Run auth check on mount
     checkAuth();
-  }, [fetchUser, setIsAuthorized, setUser]);
+  }, [fetchUser, setIsAuthorized, setUser]); // getAuthToken is defined inside the hook, so it doesn't need to be in the dependency array
 
   if (loading) {
     return (

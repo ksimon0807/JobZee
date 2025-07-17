@@ -54,36 +54,15 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// Session configuration
-app.use(
-  session({
-    secret: process.env.JWT_SECRET_KEY,
-    resave: false,
-    saveUninitialized: false,
-    store: MongoStore.create({
-      mongoUrl: process.env.MONGO_URI,
-      ttl: 24 * 60 * 60, // 1 day
-      autoRemove: 'native'
-    }),
-    cookie: {
-      secure: process.env.NODE_ENV === 'production',
-      httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000 // 1 day
-    }
-  })
-);
-
-// Initialize passport
-app.use(passport.initialize());
-app.use(passport.session());
+// Handle file uploads
+app.use(fileUpload({
+  useTempFiles: true,
+  tempFileDir: "/tmp/",
+}));
 
 // Initialize passport configuration
 import { initializePassport } from "./config/passport.js";
 initializePassport();
-
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser());
 
 // Session middleware configuration
 app.use(
@@ -120,17 +99,6 @@ app.use("/api/v1/job", jobRouter);
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/app-counts", applicationCountRouter);
 app.use("/auth/google", googleAuthRouter);  // Mount Google auth routes at /auth/google
-
-// Error Middleware
-app.use(session({
-  secret: process.env.JWT_SECRET_KEY,
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    secure: false, // Set to true in production with HTTPS
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
-  }
-}));
 
 // Initialize passport
 app.use(passport.initialize());
