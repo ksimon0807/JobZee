@@ -47,41 +47,70 @@ export const ResumeService = {
         };
       }
       
-      const { data, error } = await supabase
-        .storage
-        .from('resumes')
-        .upload(`public/${fileName}`, fileBuffer, {
-          contentType: file.mimetype,
-          upsert: true
-        });
+      // Safely access storage methods
+      const storage = supabase.storage;
+      if (!storage || typeof storage.from !== 'function') {
+        throw new Error('Storage functionality not available');
+      }
+      
+      // Get bucket safely
+      const bucket = storage.from('resumes');
+      if (!bucket || typeof bucket.upload !== 'function') {
+        throw new Error('Upload functionality not available');
+      }
+      
+      // Perform the upload with basic options
+      const { data, error } = await bucket.upload(`public/${fileName}`, fileBuffer, {
+        contentType: file.mimetype,
+        upsert: true
+      });
       
       if (error) {
         console.error('[ResumeService] Upload error:', error);
         throw new Error(error.message);
       }
       
-      // Get the public URL
-      const { data: urlData } = await supabase
-        .storage
-        .from('resumes')
-        .getPublicUrl(`public/${fileName}`);
+      // Get the public URL - safely
+      let publicUrl = '';
+      if (bucket.getPublicUrl && typeof bucket.getPublicUrl === 'function') {
+        const urlResult = bucket.getPublicUrl(`public/${fileName}`);
+        if (urlResult && urlResult.data && urlResult.data.publicUrl) {
+          publicUrl = urlResult.data.publicUrl;
+        }
+      } else {
+        // Fallback URL construction if method not available
+        publicUrl = `${process.env.SUPABASE_PROJECT_URL}/storage/v1/object/public/resumes/public/${fileName}`;
+      }
       
-      console.log('[ResumeService] Resume uploaded successfully:', urlData.publicUrl);
+      console.log('[ResumeService] Resume uploaded successfully:', publicUrl);
       
-      // Save resume metadata to the resumes table
-      const { error: dbError } = await supabase
-        .from('resumes')
-        .insert([
-          {
-            user_id: userId,
-            file_name: fileName,
-            original_name: file.originalname,
-            file_type: file.mimetype,
-            file_size: file.size,
-            file_path: data.path,
-            public_url: urlData.publicUrl
+      // Save resume metadata to the resumes table - with safety checks
+      try {
+        const table = supabase.from('resumes');
+        if (!table || typeof table.insert !== 'function') {
+          console.warn('[ResumeService] Database insert not available');
+        } else {
+          const { error: dbError } = await table.insert([
+            {
+              user_id: userId,
+              file_name: fileName,
+              original_name: file.originalname || file.name,
+              file_type: file.mimetype,
+              file_size: file.size,
+              file_path: data?.path || `public/${fileName}`,
+              public_url: publicUrl
+            }
+          ]);
+          
+          if (dbError) {
+            console.error('[ResumeService] Database error:', dbError);
+            // Continue anyway - we'll return the file info even if DB insert fails
           }
-        ]);
+        }
+      } catch (dbError) {
+        console.error('[ResumeService] Error saving to database:', dbError);
+        // Continue anyway
+      }
       
       if (dbError) {
         console.error('[ResumeService] Database error:', dbError);
@@ -90,9 +119,10 @@ export const ResumeService = {
       
       return {
         fileName,
-        originalName: file.originalname,
+        originalName: file.originalname || file.name,
         fileType: file.mimetype,
-        publicUrl: urlData.publicUrl
+        fileSize: file.size,
+        publicUrl: publicUrl
       };
     } catch (error) {
       console.error('[ResumeService] Error uploading resume:', error);
@@ -115,40 +145,58 @@ export const ResumeService = {
         return null;
       }
       
-      // First try to get from the resumes table
-      const { data, error } = await supabase
-        .from('resumes')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(1);
-      
-      if (error) {
-        console.error('[ResumeService] Query error:', error);
-        // Don't throw - we'll try other methods
-      }
-      
-      // If we found a resume in the database
-      if (data && data.length > 0) {
-        console.log('[ResumeService] Resume found in Supabase database');
+      // First try to get from the resumes table - using a safety wrapper for method chaining
+      try {
+        // Get resumes table
+        const resumesTable = supabase.from('resumes');
         
-        // Ensure we have proper URLs
-        const resume = data[0];
-        if (!resume.public_url && resume.file_path) {
-          // Try to construct the public URL if missing
-          try {
-            const { data: urlData } = await supabase
-              .storage
-              .from('resumes')
-              .getPublicUrl(resume.file_path);
-              
-            resume.public_url = urlData.publicUrl;
-          } catch (urlError) {
-            console.error('[ResumeService] Error getting public URL:', urlError);
-          }
+        // Only proceed if we have a valid query object
+        if (!resumesTable || typeof resumesTable.select !== 'function') {
+          console.warn('[ResumeService] Invalid resumes table access');
+          throw new Error('Invalid database table access');
         }
         
-        return resume;
+        // Build and execute the query safely
+        const query = resumesTable.select('*');
+        
+        if (typeof query.eq === 'function') {
+          const filteredQuery = query.eq('user_id', userId);
+          const { data, error } = await filteredQuery;
+          
+          if (error) {
+            console.error('[ResumeService] Query error:', error);
+          } else if (data && data.length > 0) {
+            console.log('[ResumeService] Resume found in Supabase database');
+            
+            // Process the result
+            const resume = data[0];
+            
+            // Ensure we have proper URLs
+            if (!resume.public_url && resume.file_path) {
+              try {
+                const storage = supabase.storage;
+                if (storage && typeof storage.from === 'function') {
+                  const bucket = storage.from('resumes');
+                  if (bucket && typeof bucket.getPublicUrl === 'function') {
+                    const { data: urlData } = bucket.getPublicUrl(resume.file_path);
+                    if (urlData && urlData.publicUrl) {
+                      resume.public_url = urlData.publicUrl;
+                    }
+                  }
+                }
+              } catch (urlError) {
+                console.error('[ResumeService] Error getting public URL:', urlError);
+              }
+            }
+            
+            return resume;
+          }
+        } else {
+          console.error('[ResumeService] Query method eq not available');
+        }
+      } catch (dbError) {
+        console.error('[ResumeService] Database query error:', dbError);
+        // Continue to other methods
       }
       
       // If we can't find it in the database, try multiple fallback methods
@@ -224,13 +272,23 @@ export const ResumeService = {
           
           // METHOD 3: List files in storage and find PDFs
           try {
-            const { data: listData, error: listError } = await supabase
-              .storage
-              .from('resumes')
-              .list('public', {
-                search: userId
-              });
-              
+            // Safely access storage
+            const storage = supabase.storage;
+            if (!storage || typeof storage.from !== 'function') {
+              console.warn('[ResumeService] Storage access not available');
+              throw new Error('Storage access not available');
+            }
+            
+            // Get bucket safely
+            const bucket = storage.from('resumes');
+            if (!bucket || typeof bucket.list !== 'function') {
+              console.warn('[ResumeService] Bucket access not available');
+              throw new Error('Bucket access not available');
+            }
+            
+            // List files with minimal options to avoid errors
+            const { data: listData, error: listError } = await bucket.list('public');
+            
             if (listError) {
               console.error('[ResumeService] Storage list error:', listError);
               throw listError;
@@ -239,9 +297,9 @@ export const ResumeService = {
             if (listData && listData.length > 0) {
               console.log('[ResumeService] Found files in storage:', listData.length);
               
-              // Find PDF files and sort by name (which includes timestamp) to get the most recent one
+              // Manually filter and sort on our side to avoid complex query parameters
               const pdfFiles = listData
-                .filter(file => file.name.includes(userId) && file.name.toLowerCase().endsWith('.pdf'))
+                .filter(file => file.name && file.name.includes(userId) && file.name.toLowerCase().endsWith('.pdf'))
                 .sort((a, b) => b.name.localeCompare(a.name)); // Sort by name descending (newer files have higher timestamps)
                 
               if (pdfFiles.length > 0) {
