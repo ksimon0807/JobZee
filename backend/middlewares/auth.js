@@ -23,13 +23,19 @@ export const isAuthorized = catchAsyncError(async (req, res, next) => {
     
     // Try to get token from Authorization header as fallback
     const authHeader = req.headers.authorization;
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      tokenToVerify = authHeader.split(' ')[1];
-      console.log('[Auth Middleware] Found token in Authorization header');
+    if (authHeader) {
+      // More flexible token extraction - handle 'Bearer ' prefix but don't require it
+      tokenToVerify = authHeader.startsWith('Bearer ') 
+        ? authHeader.split(' ')[1] 
+        : authHeader;
+        
+      console.log('[Auth Middleware] Found token in Authorization header:', 
+        authHeader.substring(0, 10) + '...');
     }
     
     if (!tokenToVerify) {
       console.log('[Auth Middleware] No token in cookies or headers');
+      console.log('[Auth Middleware] All headers:', Object.keys(req.headers).join(', '));
       return next(new ErrorHandler("Not authorized, please login first", 401));
     }
   }

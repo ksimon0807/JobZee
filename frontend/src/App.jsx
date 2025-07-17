@@ -81,20 +81,32 @@ const App = () => {
   }, [setIsAuthorized, setUser, isAuthorized]);
 
   // Function to get cookie by name
-  const getCookie = (name) => {
+  const getCookie = useCallback((name) => {
     const value = `; ${document.cookie}`;
     const parts = value.split(`; ${name}=`);
     if (parts.length === 2) return parts.pop().split(';').shift();
     return null;
-  };
+  }, []);
 
   // Function to get token (either from cookie or localStorage)
-  const getAuthToken = () => {
+  const getAuthToken = useCallback(() => {
     const cookieToken = getCookie('token');
     return cookieToken || localStorage.getItem('token');
-  };
+  }, [getCookie]);
 
   useEffect(() => {
+    // Check for token in URL (for OAuth redirects)
+    const url = new URL(window.location.href);
+    const token = url.searchParams.get('token');
+    if (token) {
+      console.log('Found token in URL parameters');
+      localStorage.setItem('token', token);
+      
+      // Remove token from URL (for security)
+      url.searchParams.delete('token');
+      window.history.replaceState({}, document.title, url.toString());
+    }
+    
     const checkAuth = async () => {
       console.log('Checking auth state on mount/navigation');
       console.log('Current cookies:', document.cookie);
@@ -178,7 +190,7 @@ const App = () => {
 
     // Run auth check on mount
     checkAuth();
-  }, [fetchUser, setIsAuthorized, setUser]); // getAuthToken is defined inside the hook, so it doesn't need to be in the dependency array
+  }, [fetchUser, setIsAuthorized, setUser, getAuthToken, getCookie]);
 
   if (loading) {
     return (

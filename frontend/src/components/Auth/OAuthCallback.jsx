@@ -58,19 +58,8 @@ const OAuthCallback = () => {
                     localStorage.setItem('isAuthorized', 'true');
                     localStorage.setItem('user', JSON.stringify(data.user));
                     
-                    // If we can extract the token from cookies, save it in localStorage too
-                    const getCookie = (name) => {
-                        const value = `; ${document.cookie}`;
-                        const parts = value.split(`; ${name}=`);
-                        if (parts.length === 2) return parts.pop().split(';').shift();
-                        return null;
-                    };
-                    
-                    const token = getCookie('token');
-                    if (token) {
-                        localStorage.setItem('token', token);
-                        console.log('OAuth callback - saved token to localStorage');
-                    }
+                    // Token handling is already done above, no need to check cookies again
+                    // The token from URL parameters takes precedence
                     
                     // Show success message
                     toast.success('Successfully logged in with Google!');
