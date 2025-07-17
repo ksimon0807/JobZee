@@ -32,16 +32,22 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-app.use(
-  cors({
-    origin: ['http://localhost:5173', 'http://127.0.0.1:5173'], // Add both localhost variations
-    methods: ["GET", "POST", "DELETE", "PUT", "PATCH"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true,
-    exposedHeaders: ["Set-Cookie"],
-    maxAge: 86400, // 24 hours
-  })
-);
+/*
+ * Configure CORS (Cross-Origin Resource Sharing) for this Express app.
+ * - origin: Read from environment variable to work in different environments
+ * - methods: Allow standard HTTP methods
+ * - credentials: Allow cookies and authorization headers
+ */
+const corsOptions = {
+  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  methods: "GET, POST, PUT, DELETE, PATCH, HEAD",
+  credentials: true,
+  allowedHeaders: ["Content-Type", "Authorization"],
+  exposedHeaders: ["Set-Cookie"],
+  maxAge: 86400, // 24 hours
+};
+
+app.use(cors(corsOptions));
 
 // Express middlewares
 app.use(express.json());
