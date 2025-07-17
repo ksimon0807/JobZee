@@ -4,7 +4,7 @@ export const initializeGoogleAPI = () => {
     if (typeof window !== 'undefined' && window.gapi) {
       window.gapi.load('auth2', () => {
         window.gapi.auth2.init({
-          client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID || '839466896691-sbp75gvd382h6omr7uvdjed94mob92db.apps.googleusercontent.com',
+          client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID || 'YOUR-GOOGLE-CLIENT-ID.apps.googleusercontent.com',
         }).then(() => {
           resolve(window.gapi.auth2.getAuthInstance());
         }).catch(reject);
