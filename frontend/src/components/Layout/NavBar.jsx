@@ -18,14 +18,28 @@ const NavBar = () => {
         `${import.meta.env.VITE_BACKEND_URL}/api/v1/user/logout`,
         { withCredentials: true }
       );
-      document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+      // Clear cookie manually in addition to server clearing it
+      const isProduction = import.meta.env.MODE === 'production';
+      
+      // Clear cookie with proper options for all environments
+      document.cookie = `token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; ${isProduction ? 'secure; samesite=None;' : ''}`;
+      
+      // Clear ALL authentication data from localStorage
       localStorage.removeItem('isAuthorized');
       localStorage.removeItem('user');
+      localStorage.removeItem('token'); // This was missing!
       setIsAuthorized(false);
       setUser({});
       toast.success(response.data.message);
       navigateTo("/login");
     } catch (error) {
+      console.error('Logout error:', error);
+      
+      // Even if the server call fails, we still want to clear local data
+      localStorage.removeItem('isAuthorized');
+      localStorage.removeItem('user');
+      localStorage.removeItem('token');
+      
       toast.error(error.response?.data?.message || "Logout failed");
       setIsAuthorized(false);
       setUser({});
