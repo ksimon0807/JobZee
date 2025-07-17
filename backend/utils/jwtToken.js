@@ -3,22 +3,31 @@ export const sendToken = (user, statusCode, res, message) => {
   
   const token = user.getJWTToken();
   
-  // Cookie options
+  // Determine if we're in production
+  const isProduction = process.env.NODE_ENV === 'production';
+  
+  // Cookie options - dynamically set based on environment
   const options = {
     expires: new Date(
       Date.now() + process.env.COOKIE_EXPIRE * 24 * 60 * 60 * 1000
     ),
-    httpOnly: false, // Allow JavaScript access for development
-    secure: false, // Allow non-HTTPS in development
-    sameSite: 'lax',
-    path: '/',
-    domain: 'localhost' // Explicitly set domain for local development
+    httpOnly: true, // Prevents client-side JS from accessing the cookie
+    secure: isProduction, // Only set to true in production (HTTPS)
+    sameSite: isProduction ? 'none' : 'lax', // Allow cross-site requests in production
+    path: '/'
   };
+  
+  // Remove domain restriction in production
+  if (!isProduction) {
+    options.domain = 'localhost';
+  }
 
   console.log('[sendToken] Setting cookie with options:', {
     expires: options.expires,
     secure: options.secure,
-    sameSite: options.sameSite
+    sameSite: options.sameSite,
+    httpOnly: options.httpOnly,
+    environment: process.env.NODE_ENV || 'development'
   });
 
   res.status(statusCode)
