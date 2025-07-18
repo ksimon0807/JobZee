@@ -16,7 +16,7 @@ const ProfileView = () => {
     setLoading(true);
     // Fetch user public profile
     axios
-      .get(`/api/v1/user/profile/public/${userId}`, { withCredentials: true })
+      .get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/user/profile/public/${userId}`, { withCredentials: true })
       .then((res) => {
         setUser(res.data.user);
         setLoading(false);
@@ -27,7 +27,7 @@ const ProfileView = () => {
       });
     // Fetch latest application for this user (for employer view)
     axios
-      .get(`/api/v1/application/employer/getall`, { withCredentials: true })
+      .get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/application/employer/getall`, { withCredentials: true })
       .then((res) => {
         // Find the latest application for this userId
         const apps = res.data.applications || [];
