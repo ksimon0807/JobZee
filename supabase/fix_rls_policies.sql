@@ -1,38 +1,18 @@
--- Temporary fix for Supabase RLS issues
+-- Simplified fix for Supabase RLS issues
 -- Run this in your Supabase SQL Editor to allow resume uploads
 
--- Option 1: Disable RLS temporarily (NOT recommended for production)
--- ALTER TABLE public.resumes DISABLE ROW LEVEL SECURITY;
-
--- Option 2: Add a more permissive policy for your app (RECOMMENDED)
--- This allows all operations when using the service role key
-
--- First, drop the restrictive policies
+-- First, drop the restrictive policies if they exist
 DROP POLICY IF EXISTS "Users can view their own resumes" ON public.resumes;
 DROP POLICY IF EXISTS "Users can insert their own resumes" ON public.resumes;
 DROP POLICY IF EXISTS "Users can update their own resumes" ON public.resumes;
 DROP POLICY IF EXISTS "Users can delete their own resumes" ON public.resumes;
+DROP POLICY IF EXISTS "allow_all_resumes" ON public.resumes;
 
--- Create new permissive policies for service role operations
-CREATE POLICY "Service role can do everything" ON public.resumes
+-- Create a simple permissive policy that allows all operations
+CREATE POLICY "allow_all_operations" ON public.resumes
   FOR ALL 
   USING (true) 
   WITH CHECK (true);
-
--- Make sure the bucket allows public access for downloads
-UPDATE storage.buckets 
-SET public = true 
-WHERE id = 'resumes';
-
--- Add storage policies for public access
-INSERT INTO storage.policies (name, definition, bucket_id)
-VALUES 
-  ('Public read access', '{"action": "select", "resource": "*"}', 'resumes'),
-  ('Public download access', '{"action": "download", "resource": "*"}', 'resumes'),
-  ('Service role upload access', '{"action": "insert", "resource": "*"}', 'resumes'),
-  ('Service role update access', '{"action": "update", "resource": "*"}', 'resumes'),
-  ('Service role delete access', '{"action": "delete", "resource": "*"}', 'resumes')
-ON CONFLICT (name, bucket_id) DO NOTHING;
 
 -- Ensure the resumes table exists with proper structure
 CREATE TABLE IF NOT EXISTS public.resumes (
@@ -51,4 +31,10 @@ CREATE TABLE IF NOT EXISTS public.resumes (
 -- Create index for faster lookups
 CREATE INDEX IF NOT EXISTS resumes_user_id_idx ON public.resumes (user_id);
 
-COMMENT ON TABLE public.resumes IS 'User resume files with permissive access for service operations';
+-- Make sure RLS is enabled but with permissive policy
+ALTER TABLE public.resumes ENABLE ROW LEVEL SECURITY;
+
+COMMENT ON TABLE public.resumes IS 'User resume files with permissive access';
+
+-- Display success message
+SELECT 'RLS policies updated successfully! You can now upload resumes.' as message;

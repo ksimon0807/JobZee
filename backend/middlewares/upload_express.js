@@ -254,10 +254,10 @@ export const uploadResume = async (req, res, next) => {
                 
                 console.log('[uploadResume] File uploaded successfully to Supabase:', publicUrl);
                 
-                                // For PDFs, store additional metadata in multiple ways to ensure retrieval works
+                // For PDFs, store additional metadata in storage (skip DB due to RLS issues)
                 if (isPdf) {
                     try {
-                        console.log('[uploadResume] Saving PDF metadata to Supabase DB and storage');
+                        console.log('[uploadResume] Saving PDF metadata to Supabase storage only (skipping DB due to RLS)');
                         
                         // Create metadata object
                         const metadataObj = { 
@@ -273,17 +273,9 @@ export const uploadResume = async (req, res, next) => {
                             created_at: new Date().toISOString()
                         };
                         
-                        // Try all storage methods in parallel for robustness
+                        // Store metadata in storage files (skip database due to RLS issues)
                         
-                        // 1. Database record
-                        const dbPromise = supabase
-                            .from('resumes')
-                            .upsert([metadataObj], {
-                                onConflict: 'user_id', // Replace any existing resume for this user
-                                ignoreDuplicates: false
-                            });
-                            
-                        // 2. Metadata file in storage
+                        // 1. Metadata file in storage
                         const metadataString = JSON.stringify(metadataObj);
                         const metaFilePath = `public/${userId}_metadata.json`;
                         const storagePromise = supabase
@@ -294,7 +286,7 @@ export const uploadResume = async (req, res, next) => {
                                 upsert: true
                             });
                             
-                        // 3. Add metadata to the main file name itself as a backup
+                        // 2. Simple text file with just filename and URL
                         const metaFilePathAlt = `public/${userId}_latest_resume_info.txt`;
                         const altStoragePromise = supabase
                             .storage
@@ -304,21 +296,13 @@ export const uploadResume = async (req, res, next) => {
                                 upsert: true
                             });
                             
-                        // Execute all promises
-                        const [dbResult, storageResult, altStorageResult] = await Promise.allSettled([
-                            dbPromise, 
+                        // Execute storage promises only
+                        const [storageResult, altStorageResult] = await Promise.allSettled([
                             storagePromise,
                             altStoragePromise
                         ]);
                         
                         // Log results
-                        if (dbResult.status === 'fulfilled' && !dbResult.value.error) {
-                            console.log('[uploadResume] PDF metadata saved to Supabase DB');
-                        } else {
-                            const errorMsg = dbResult.reason || dbResult.value?.error?.message;
-                            console.warn('[uploadResume] Failed to save metadata to Supabase DB:', errorMsg);
-                        }
-                        
                         if (storageResult.status === 'fulfilled' && !storageResult.value.error) {
                             console.log('[uploadResume] Created metadata file in storage');
                         } else {

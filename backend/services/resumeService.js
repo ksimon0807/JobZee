@@ -330,76 +330,110 @@ export const ResumeService = {
               // Debug: Let's see what we're actually comparing
               console.log(`[ResumeService] Comparing user ID "${userId}" with file names:`);
               
-              // Manually filter and sort on our side to avoid complex query parameters
-              // Note: Some files might not have .pdf extension in their name
-              const pdfFiles = listData
-                .filter(file => {
-                  // Check if the file exists and has a name
-                  if (!file || !file.name) return false;
-                  
-                  console.log(`[ResumeService] Checking file: "${file.name}"`);
-                  
-                  // Check if this file belongs to the current user
-                  const isUsersFile = file.name.includes(userId);
-                  
-                  // Check if it's a PDF file (either by extension or by naming pattern)
-                  const isPdfByExtension = file.name.toLowerCase().endsWith('.pdf');
-                  const isPdfByTimestamp = /^\d+_\d+$/.test(file.name); // Matches userId_timestamp pattern
-                  
-                  console.log(`[ResumeService] File analysis - isUsersFile: ${isUsersFile}, isPdfByExtension: ${isPdfByExtension}, isPdfByTimestamp: ${isPdfByTimestamp}`);
-                  
-                  return isUsersFile && (isPdfByExtension || isPdfByTimestamp);
-                })
-                .sort((a, b) => b.name.localeCompare(a.name)); // Sort by name descending (newer files have higher timestamps)
+              // First check if there's a metadata info file for this user
+              const metaInfoFile = listData.find(file => file.name === `${userId}_latest_resume_info.txt`);
+              let foundPdfFile = null;
               
-              if (pdfFiles.length > 0) {
-                const pdfFile = pdfFiles[0]; // Get most recent PDF
-                console.log('[ResumeService] Found PDF in storage:', pdfFile.name);
+              if (metaInfoFile) {
+                console.log('[ResumeService] Found metadata info file, getting resume filename from it');
+                try {
+                  // Download and read the info file to get the actual resume filename
+                  const { data: metaData } = await supabase
+                    .storage
+                    .from('resumes')
+                    .download(`public/${userId}_latest_resume_info.txt`);
+                  
+                  if (metaData) {
+                    const text = await metaData.text();
+                    const lines = text.split('\n');
+                    const resumeFileName = lines[0].trim();
+                    
+                    console.log('[ResumeService] Resume filename from metadata:', resumeFileName);
+                    
+                    // Find the actual resume file
+                    foundPdfFile = listData.find(file => file.name === resumeFileName);
+                    if (foundPdfFile) {
+                      console.log('[ResumeService] ✓ Found resume file from metadata:', resumeFileName);
+                    }
+                  }
+                } catch (metaError) {
+                  console.warn('[ResumeService] Could not read metadata file:', metaError.message);
+                }
+              }
+              
+              // If no file found via metadata, fall back to pattern matching
+              if (!foundPdfFile) {
+                console.log('[ResumeService] No metadata file or metadata read failed, falling back to pattern matching');
+                
+                // Manually filter and sort on our side to avoid complex query parameters
+                const pdfFiles = listData
+                  .filter(file => {
+                    // Check if the file exists and has a name
+                    if (!file || !file.name) return false;
+                    
+                    console.log(`[ResumeService] Checking file: "${file.name}"`);
+                    
+                    // Skip metadata files
+                    if (file.name.includes('_metadata.json') || file.name.includes('_latest_resume_info.txt')) {
+                      return false;
+                    }
+                    
+                    // Check if this file belongs to the current user with various patterns
+                    const isUsersFile = 
+                      file.name.startsWith(`${userId}_`) ||           // userId_filename
+                      file.name.startsWith(`${userId}-`) ||           // userId-filename  
+                      file.name.includes(`_${userId}_`) ||            // prefix_userId_suffix
+                      file.name.includes(`-${userId}-`) ||            // prefix-userId-suffix
+                      file.name === `${userId}.pdf` ||                // exact userId.pdf
+                      file.name.endsWith(`_${userId}.pdf`) ||         // name_userId.pdf
+                      file.name.endsWith(`-${userId}.pdf`) ||         // name-userId.pdf
+                      file.name.includes(userId);                     // fallback: any mention of userId
+                    
+                    // Check if it's a PDF file (either by extension or by naming pattern)
+                    const isPdfByExtension = file.name.toLowerCase().endsWith('.pdf');
+                    const isPdfByTimestamp = /^\d+_\d+$/.test(file.name); // Matches userId_timestamp pattern
+                    
+                    console.log(`[ResumeService] File analysis - isUsersFile: ${isUsersFile}, isPdfByExtension: ${isPdfByExtension}, isPdfByTimestamp: ${isPdfByTimestamp}`);
+                    
+                    return isUsersFile && (isPdfByExtension || isPdfByTimestamp);
+                  })
+                  .sort((a, b) => b.name.localeCompare(a.name)); // Sort by name descending (newer files have higher timestamps)
+                
+                if (pdfFiles.length > 0) {
+                  foundPdfFile = pdfFiles[0]; // Get most recent PDF
+                }
+              }
+              
+              if (foundPdfFile) {
+                console.log('[ResumeService] Found PDF in storage:', foundPdfFile.name);
                 
                 // Get the public URL
                 const { data: urlData } = await supabase
                   .storage
                   .from('resumes')
-                  .getPublicUrl(`public/${pdfFile.name}`);
+                  .getPublicUrl(`public/${foundPdfFile.name}`);
                 
                 const resumeData = {
-                  id: pdfFile.name,
-                  file_name: pdfFile.name,
+                  id: foundPdfFile.name,
+                  file_name: foundPdfFile.name,
                   user_id: userId,
                   file_type: 'application/pdf',
                   public_url: urlData.publicUrl,
                   created_at: new Date().toISOString()
                 };
                 
-                // Try to update metadata files and DB records for future queries
+                // Try to update metadata files for future queries (skip DB due to RLS)
                 try {
-                  // Update DB record
-                  await supabase
-                    .from('resumes')
-                    .upsert(resumeData, {
-                      onConflict: 'user_id',
-                      ignoreDuplicates: false
-                    });
-                    
-                  // Update metadata file
-                  await supabase
-                    .storage
-                    .from('resumes')
-                    .upload(`public/${userId}_metadata.json`, JSON.stringify(resumeData), {
-                      contentType: 'application/json',
-                      upsert: true
-                    });
-                    
                   // Update simple metadata
                   await supabase
                     .storage
                     .from('resumes')
-                    .upload(`public/${userId}_latest_resume_info.txt`, `${pdfFile.name}\n${urlData.publicUrl}`, {
+                    .upload(`public/${userId}_latest_resume_info.txt`, `${foundPdfFile.name}\n${urlData.publicUrl}`, {
                       contentType: 'text/plain',
                       upsert: true
                     });
                     
-                  console.log('[ResumeService] Updated all metadata sources for future queries');
+                  console.log('[ResumeService] Updated metadata file for future queries');
                 } catch (updateErr) {
                   console.warn('[ResumeService] Could not update metadata:', updateErr.message);
                 }
