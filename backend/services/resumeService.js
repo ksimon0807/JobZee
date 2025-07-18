@@ -344,12 +344,10 @@ export const ResumeService = {
                   return isUsersFile && (isPdfByExtension || isPdfByTimestamp);
                 })
                 .sort((a, b) => b.name.localeCompare(a.name)); // Sort by name descending (newer files have higher timestamps)
-                if (pdfFiles.length > 0) {
+              
+              if (pdfFiles.length > 0) {
                 const pdfFile = pdfFiles[0]; // Get most recent PDF
                 console.log('[ResumeService] Found PDF in storage:', pdfFile.name);
-              } else {
-                console.log(`[ResumeService] No PDF files found matching userId ${userId} after filtering`);
-              }
                 
                 // Get the public URL
                 const { data: urlData } = await supabase
@@ -400,12 +398,13 @@ export const ResumeService = {
                 }
                 
                 return resumeData;
+              } else {
+                console.log(`[ResumeService] No PDF files found matching userId ${userId} after filtering`);
               }
             }
             
             console.log(`[ResumeService] No PDF files found for user: ${userId}`);
             return null;
-            
           } catch (storageError) {
             console.error('[ResumeService] Storage search error:', storageError);
             throw storageError;
@@ -418,8 +417,6 @@ export const ResumeService = {
       
       // Try all methods and return the result
       return await tryAllMethods();
-      
-      return null;
     } catch (error) {
       console.error('[ResumeService] Error getting resume:', error);
       throw error;
