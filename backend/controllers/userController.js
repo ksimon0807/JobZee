@@ -354,9 +354,9 @@ export const getUserPublicProfile = catchAsyncError(async (req, res, next) => {
     console.log('[getUserPublicProfile] No userId provided');
     return next(new ErrorHandler("User ID is required", 400));
   }
-  if (!req.user || req.user.role !== 'Employer') {
-    console.log('[getUserPublicProfile] Not authorized:', req.user);
-    return next(new ErrorHandler("Not authorized", 403));
+  if (!req.user) {
+    console.log('[getUserPublicProfile] User not authenticated');
+    return next(new ErrorHandler("Authentication required", 401));
   }
   const user = await User.findById(userId).select('-password -googleId -__v');
   if (!user) {
