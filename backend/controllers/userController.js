@@ -46,12 +46,27 @@ export const login = catchAsyncError(async (req, res, next) => {
 });
 
 export const logout = catchAsyncError(async (req, res, next) => {
+  // Use the same cookie configuration as login to ensure proper clearing
+  const isProduction = process.env.NODE_ENV === 'production';
+  
+  const cookieOptions = {
+    expires: new Date(Date.now()), // Set to past date to clear cookie
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? 'None' : 'Lax',
+    path: '/'
+  };
+  
+  // Remove domain restriction in production
+  if (!isProduction) {
+    cookieOptions.domain = 'localhost';
+  }
+
+  console.log('[logout] Clearing cookie with options:', cookieOptions);
+  
   res
     .status(201)
-    .cookie("token", null, {
-      expires: new Date(Date.now()),
-      httpOnly: true,
-    })
+    .cookie("token", null, cookieOptions)
     .json({
       success: true,
       message: "User logged out successfully!",
