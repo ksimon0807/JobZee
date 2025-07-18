@@ -293,8 +293,21 @@ export const handleResumeUpload = catchAsyncError(async (req, res, next) => {
       url: resumeData.publicUrl
     };
 
-    await user.save();
-    console.log("User updated with resume:", user.resume);
+    // Save user with error handling to prevent server crash
+    try {
+      await user.save();
+      console.log("User updated with resume:", user.resume);
+    } catch (saveError) {
+      console.error("User save error:", saveError);
+      // Try alternative save method
+      await User.findByIdAndUpdate(user._id, {
+        resume: {
+          public_id: resumeData.fileName,
+          url: resumeData.publicUrl
+        }
+      });
+      console.log("User updated via findByIdAndUpdate");
+    }
 
     res.status(200).json({
       success: true,

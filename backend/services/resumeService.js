@@ -311,8 +311,25 @@ export const ResumeService = {
               throw new Error('Bucket access not available');
             }
             
-            // List files with minimal options to avoid errors
-            const { data: listData, error: listError } = await bucket.list('public');
+            // List files with minimal options to avoid errors - try multiple times if needed
+            let listData, listError;
+            let retryCount = 0;
+            const maxRetries = 3;
+            
+            do {
+              const listResult = await bucket.list('public', {
+                sortBy: { column: 'created_at', order: 'desc' }, // Get newest files first
+                limit: 100 // Ensure we get recent files
+              });
+              listData = listResult.data;
+              listError = listResult.error;
+              
+              if (listError && retryCount < maxRetries) {
+                console.warn(`[ResumeService] Storage list attempt ${retryCount + 1} failed:`, listError);
+                await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+                retryCount++;
+              }
+            } while (listError && retryCount < maxRetries);
             
             if (listError) {
               console.error('[ResumeService] Storage list error:', listError);
@@ -388,6 +405,13 @@ export const ResumeService = {
                       file.name.endsWith(`_${userId}.pdf`) ||         // name_userId.pdf
                       file.name.endsWith(`-${userId}.pdf`) ||         // name-userId.pdf
                       file.name.includes(userId);                     // fallback: any mention of userId
+                    
+                    console.log(`[ResumeService] Pattern matching for userId "${userId}":`, {
+                      fileName: file.name,
+                      startsWithUserId: file.name.startsWith(`${userId}_`),
+                      includesUserId: file.name.includes(userId),
+                      isUsersFile: isUsersFile
+                    });
                     
                     // Check if it's a PDF file (either by extension or by naming pattern)
                     const isPdfByExtension = file.name.toLowerCase().endsWith('.pdf');

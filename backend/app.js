@@ -103,7 +103,7 @@ app.use(cookieParser());
 
 // Configure file upload middleware (but don't apply it globally)
 // We'll apply this only to specific routes that need file uploads
-const fileUploadMiddleware = fileUpload({
+export const fileUploadMiddleware = fileUpload({
   useTempFiles: true,
   tempFileDir: "/tmp/",
   debug: false, // Disable debug to reduce noise
