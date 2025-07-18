@@ -327,6 +327,9 @@ export const ResumeService = {
               // Log detailed file information to help debug
               safeLog('[ResumeService] Detailed file list', listData);
               
+              // Debug: Let's see what we're actually comparing
+              console.log(`[ResumeService] Comparing user ID "${userId}" with file names:`);
+              
               // Manually filter and sort on our side to avoid complex query parameters
               // Note: Some files might not have .pdf extension in their name
               const pdfFiles = listData
@@ -334,12 +337,16 @@ export const ResumeService = {
                   // Check if the file exists and has a name
                   if (!file || !file.name) return false;
                   
+                  console.log(`[ResumeService] Checking file: "${file.name}"`);
+                  
                   // Check if this file belongs to the current user
                   const isUsersFile = file.name.includes(userId);
                   
                   // Check if it's a PDF file (either by extension or by naming pattern)
                   const isPdfByExtension = file.name.toLowerCase().endsWith('.pdf');
                   const isPdfByTimestamp = /^\d+_\d+$/.test(file.name); // Matches userId_timestamp pattern
+                  
+                  console.log(`[ResumeService] File analysis - isUsersFile: ${isUsersFile}, isPdfByExtension: ${isPdfByExtension}, isPdfByTimestamp: ${isPdfByTimestamp}`);
                   
                   return isUsersFile && (isPdfByExtension || isPdfByTimestamp);
                 })
