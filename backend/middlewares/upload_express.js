@@ -3,6 +3,21 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { createClient } from '@supabase/supabase-js';
+import fileUpload from "express-fileupload";
+
+// Configure file upload middleware for specific routes
+const fileUploadMiddleware = fileUpload({
+  useTempFiles: true,
+  tempFileDir: "/tmp/",
+  debug: false, // Disable debug to reduce noise
+  parseNested: true,
+  abortOnLimit: true,
+  limitHandler: (req, res, next) => {
+    res.status(413).json({ success: false, message: 'File size limit exceeded' });
+  },
+  createParentPath: true,
+  safeFileNames: true
+});
 
 // Helper function to validate file type
 const validateFileType = (file, allowedTypes) => {
@@ -56,22 +71,24 @@ const uploadToCloudinary = async (file, folder, options = {}) => {
     }
 };
 
-// Create express-fileupload middleware for avatars
-export const uploadAvatar = async (req, res, next) => {
-    console.log('[uploadAvatar] Starting avatar upload middleware...');
-    
-    try {
-        // Check if files were uploaded
-        if (!req.files || Object.keys(req.files).length === 0 || !req.files.avatar) {
-            console.log('[uploadAvatar] No files were uploaded');
-            return res.status(400).json({
-                success: false,
-                message: 'No files were uploaded'
-            });
-        }
+// Create composite middleware for avatars (fileUpload + upload logic)
+export const uploadAvatar = [
+    fileUploadMiddleware,
+    async (req, res, next) => {
+        console.log('[uploadAvatar] Starting avatar upload middleware...');
         
-        // Get the avatar file
-        const avatarFile = req.files.avatar;
+        try {
+            // Check if files were uploaded
+            if (!req.files || Object.keys(req.files).length === 0 || !req.files.avatar) {
+                console.log('[uploadAvatar] No files were uploaded');
+                return res.status(400).json({
+                    success: false,
+                    message: 'No files were uploaded'
+                });
+            }
+            
+            // Get the avatar file
+            const avatarFile = req.files.avatar;
         
         console.log('[uploadAvatar] File received:', {
             name: avatarFile.name,
@@ -137,7 +154,8 @@ export const uploadAvatar = async (req, res, next) => {
             message: `Server error during upload: ${error.message}`
         });
     }
-};
+    } // Close the async function
+]; // Close the uploadAvatar middleware array
 
 // Initialize Supabase client if environment variables are available
 let supabase;
@@ -156,11 +174,13 @@ try {
     // Continue without Supabase, we'll use Cloudinary as fallback
 }
 
-// Create express-fileupload middleware for resumes
-export const uploadResume = async (req, res, next) => {
-    console.log('[uploadResume] Starting resume upload middleware...');
-    
-    try {
+// Create composite middleware for resumes (fileUpload + upload logic)
+export const uploadResume = [
+    fileUploadMiddleware,
+    async (req, res, next) => {
+        console.log('[uploadResume] Starting resume upload middleware...');
+        
+        try {
         // Check if files were uploaded
         if (!req.files || Object.keys(req.files).length === 0 || !req.files.resume) {
             console.log('[uploadResume] No files were uploaded');
@@ -397,4 +417,5 @@ export const uploadResume = async (req, res, next) => {
             message: `Server error during upload: ${error.message}`
         });
     }
-};
+    } // Close the async function
+]; // Close the uploadResume middleware array
