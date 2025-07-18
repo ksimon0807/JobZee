@@ -281,6 +281,7 @@ export const getUserResume = catchAsyncError(async (req, res, next) => {
     const userId = req.params.userId || req.user._id?.toString();
     console.log('[getUserResume] Looking up resume for user', userId);
     // Check if the user is authorized to access this resume
+    // Users can access their own resume, or Employers can access any resume
     if (req.params.userId && req.user._id?.toString() !== req.params.userId && req.user.role !== 'Employer') {
       return next(new ErrorHandler("Not authorized to access this resume", 403));
     }
@@ -347,22 +348,34 @@ export const deleteResume = catchAsyncError(async (req, res, next) => {
 
 // Get public profile for a user (for employer viewing applicant)
 export const getUserPublicProfile = catchAsyncError(async (req, res, next) => {
+  console.log('[getUserPublicProfile] FUNCTION CALLED!!!');
+  console.log('[getUserPublicProfile] req.params:', req.params);
+  console.log('[getUserPublicProfile] req.user:', req.user);
+  console.log('[getUserPublicProfile] req.url:', req.url);
+  
   const { userId } = req.params;
-  console.log('[getUserPublicProfile] called with req.user:', req.user);
   console.log('[getUserPublicProfile] userId param:', userId);
+  
   if (!userId) {
     console.log('[getUserPublicProfile] No userId provided');
     return next(new ErrorHandler("User ID is required", 400));
   }
+  
   if (!req.user) {
     console.log('[getUserPublicProfile] User not authenticated');
     return next(new ErrorHandler("Authentication required", 401));
   }
-  const user = await User.findById(userId).select('-password -googleId -__v');
-  if (!user) {
-    console.log('[getUserPublicProfile] User not found for id:', userId);
-    return next(new ErrorHandler("User not found", 404));
+  
+  try {
+    const user = await User.findById(userId).select('-password -googleId -__v');
+    if (!user) {
+      console.log('[getUserPublicProfile] User not found for id:', userId);
+      return next(new ErrorHandler("User not found", 404));
+    }
+    console.log('[getUserPublicProfile] Successfully found user:', user.name);
+    res.status(200).json({ success: true, user });
+  } catch (error) {
+    console.log('[getUserPublicProfile] Database error:', error);
+    return next(new ErrorHandler("Database error", 500));
   }
-  console.log('[getUserPublicProfile] Returning user:', user);
-  res.status(200).json({ success: true, user });
 });

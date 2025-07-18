@@ -18,8 +18,19 @@ import { isAuthorized } from "../middlewares/auth.js";
 import { uploadAvatar, uploadResume } from "../middlewares/upload.js";
 
 const router = express.Router();
+
+// Debug: Log when routes are being registered
+console.log('[UserRouter] Registering routes...');
+
 // Employer view applicant profile
-router.get("/profile/public/:userId", isAuthorized, getUserPublicProfile);
+router.get("/profile/public/:userId", (req, res, next) => {
+  console.log('[UserRouter] /profile/public/:userId route hit!');
+  console.log('[UserRouter] req.params:', req.params);
+  console.log('[UserRouter] req.url:', req.url);
+  next();
+}, isAuthorized, getUserPublicProfile);
+
+console.log('[UserRouter] Public profile route registered');
 
 // Auth routes
 router.post("/register", register);
