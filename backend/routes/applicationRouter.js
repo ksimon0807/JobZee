@@ -1,7 +1,7 @@
 import express from "express";
 import { employerGetAllApplications, jobseekerDeleteApplication, jobseekerGetAllApplications, postApplication, updateApplicationStatus } from "../controllers/applicationController.js";
 import { isAuthorized } from "../middlewares/auth.js";
-import { uploadResume } from "../middlewares/upload_express.js";
+import { uploadResume } from "../middlewares/upload.js";
 
 const router = express.Router();
 
